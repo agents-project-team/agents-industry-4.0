@@ -5,4 +5,5 @@ module agents {
 
 	opens agents to javafx.fxml;
     exports agents;
+    opens agents.workers to jade;
 }
