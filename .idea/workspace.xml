@@ -1,16 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="71d9fd8d-3341-4f3f-97fe-92e2a82dd933" name="Default Changelist" comment="" />
+    <list default="true" id="71d9fd8d-3341-4f3f-97fe-92e2a82dd933" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/hs_err_pid15570.log" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/hs_err_pid15676.log" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/agents/assemblers/Assembler.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/agents/assemblers/AssemblerType.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/agents/managers/AssemblerManager.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/agents/managers/MachineManager.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/agents/managers/Manager.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/agents/workers/Machine.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/agents/workers/MachineType.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/APDescription.txt" beforeDir="false" afterPath="$PROJECT_DIR$/APDescription.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MTPs-Main-Container.txt" beforeDir="false" afterPath="$PROJECT_DIR$/MTPs-Main-Container.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/agents/App.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/agents/App.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/agents/PrimaryController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/agents/PrimaryController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/agents/SecondaryController.java" beforeDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="DatabaseView">
+    <option name="SHOW_INTERMEDIATE" value="true" />
+    <option name="GROUP_DATA_SOURCES" value="true" />
+    <option name="GROUP_SCHEMA" value="true" />
+    <option name="GROUP_CONTENTS" value="false" />
+    <option name="SORT_POSITIONED" value="false" />
+    <option name="SHOW_EMPTY_GROUPS" value="false" />
+    <option name="AUTO_SCROLL_FROM_SOURCE" value="false" />
+    <option name="HIDDEN_KINDS">
+      <set />
+    </option>
+    <expand />
+    <select />
+  </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
+        <option value="Enum" />
         <option value="Class" />
       </list>
     </option>
@@ -26,8 +57,11 @@
     </option>
   </component>
   <component name="ProjectId" id="1sOkCSuxKTrfZoQcIZ77qTTKDrg" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="aspect.path.notification.shown" value="true" />
@@ -35,6 +69,11 @@
     <property name="project.structure.proportion" value="0.15" />
     <property name="project.structure.side.proportion" value="0.2" />
     <property name="settings.editor.selected.configurable" value="reference.projectsettings.compiler.javacompiler" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="agents.assemblers" />
+    </key>
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -79,8 +118,18 @@
       <option name="presentableId" value="Default" />
       <updated>1620750895853</updated>
       <workItem from="1620750899097" duration="490000" />
-      <workItem from="1620751434170" duration="783000" />
+      <workItem from="1620751434170" duration="1771000" />
+      <workItem from="1620806676814" duration="1296000" />
+      <workItem from="1620831282374" duration="3565000" />
     </task>
+    <task id="LOCAL-00001" summary="Javafx version fix + module info change">
+      <created>1620752561556</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1620752561556</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -91,10 +140,17 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
           </value>
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+    <MESSAGE value="Javafx version fix + module info change" />
+    <option name="LAST_COMMIT_MESSAGE" value="Javafx version fix + module info change" />
   </component>
 </project>
