@@ -3,14 +3,12 @@ package agents.managers;
 import agents.workers.assemblers.AssemblerType;
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.Profile;
-import jade.core.ProfileImpl;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
-
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,17 +26,17 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		setupSupervisor();
 		setupWorkingAssemblers();
 		setupSpareAssemblers();
+		setupBehaviours();
+	}
 
+	private void setupBehaviours() {
 		addBehaviour(new CyclicBehaviour() {
 			@Override
 			public void action() {
-				ACLMessage msg = receive();
-
+				ACLMessage msg = blockingReceive();
 				if (msg != null) {
 					System.out.println(msg.getContent());
 				}
-
-				block();
 			}
 		});
 	}
@@ -48,36 +46,20 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	}
 
 	private void setupWorkingAssemblers() {
-		getWorkingMachines().put(AssemblerType.Final, startAssemblerAgent(AssemblerType.Final));
-		getWorkingMachines().put(AssemblerType.Fabric, startAssemblerAgent(AssemblerType.Fabric));
-		getWorkingMachines().put(AssemblerType.Sole, startAssemblerAgent(AssemblerType.Sole));
+		startAssemblerAgent(AssemblerType.Sole);
+		startAssemblerAgent(AssemblerType.Final);
+		startAssemblerAgent(AssemblerType.Fabric);
 	}
 
 	private void setupSpareAssemblers() {
-		ContainerController cc = startBackupContainer();
+		List<AID> spareSolesAssemblers = new ArrayList<>();
+		getSpareMachines().put(AssemblerType.Sole, spareSolesAssemblers);
 
-		getSpareMachines().put(AssemblerType.Sole, List.of(
-				startBackupAssemblerAgent(AssemblerType.Sole + "1", cc),
-				startBackupAssemblerAgent(AssemblerType.Sole + "2", cc)
-		));
+		List<AID> spareCounterAssemblers = new ArrayList<>();
+		getSpareMachines().put(AssemblerType.Fabric, spareCounterAssemblers);
 
-		getSpareMachines().put(AssemblerType.Final, List.of(
-				startBackupAssemblerAgent(AssemblerType.Final + "1", cc),
-				startBackupAssemblerAgent(AssemblerType.Final + "2", cc)
-		));
-
-		getSpareMachines().put(AssemblerType.Fabric, List.of(
-				startBackupAssemblerAgent(AssemblerType.Fabric + "1", cc),
-				startBackupAssemblerAgent(AssemblerType.Fabric + "2", cc)
-		));
-	}
-
-	private ContainerController startBackupContainer() {
-		jade.core.Runtime runtime = jade.core.Runtime.instance();
-		Profile profile = new ProfileImpl();
-		profile.setParameter(Profile.CONTAINER_NAME, "BackupAssemblers");
-		profile.setParameter(Profile.MAIN_HOST, "localhost");
-		return runtime.createAgentContainer(profile);
+		List<AID> spareFinalAssemblers = new ArrayList<>();
+		getSpareMachines().put(AssemblerType.Final, spareFinalAssemblers);
 	}
 
 	@Override
@@ -95,24 +77,14 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		return spareAssemblers;
 	}
 
-	private AID startAssemblerAgent(AssemblerType type) {
+	private void startAssemblerAgent(AssemblerType type) {
 		ContainerController cc = getContainerController();
 		try {
-			AgentController ac = cc.createNewAgent("Assembler" + type.name(), "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID()});
+			AgentController ac = cc.createNewAgent(type.name(), "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID()});
 			ac.start();
-			return new AID(ac.getName(), AID.ISLOCALNAME);
+			getWorkingMachines().put(type, new AID(ac.getName(), AID.ISLOCALNAME));
 		} catch (StaleProxyException e) {
-			throw new IllegalStateException();
-		}
-	}
-
-	private AID startBackupAssemblerAgent(String name, ContainerController cc) {
-		try {
-			AgentController ac = cc.createNewAgent("AssemblerBackup" + name, "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID()});
-			return new AID(ac.getName(), AID.ISLOCALNAME);
-		} catch (Exception e) {
 			e.printStackTrace();
-			throw new IllegalStateException();
 		}
 	}
 }
