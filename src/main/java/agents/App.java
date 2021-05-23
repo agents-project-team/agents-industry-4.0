@@ -37,6 +37,7 @@ public class App extends Application {
 
 		String[] parameters = {
 				"-gui",
+				"MachineManager:agents.managers.MachineManager"
 		};
 
 		Boot.main(parameters);

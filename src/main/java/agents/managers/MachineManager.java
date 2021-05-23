@@ -1,10 +1,14 @@
 package agents.managers;
 
-import agents.workers.machines.MachineType;
 import agents.workers.machines.MachineAgent;
+import agents.workers.machines.MachineType;
 import jade.core.AID;
 import jade.core.Agent;
+import jade.wrapper.AgentController;
+import jade.wrapper.ContainerController;
+import jade.wrapper.StaleProxyException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -12,9 +16,9 @@ public class MachineManager extends Agent implements Manager<MachineAgent, Machi
 
 	private AID supervisor;
 
-	private Map<MachineType, MachineAgent> workingMachines;
+	private Map<MachineType, MachineAgent> workingMachines = new HashMap<>();
 
-	private Map<MachineType, List<MachineAgent>> spareMachines;
+	private Map<MachineType, List<MachineAgent>> spareMachines = new HashMap<>();
 
 
 	@Override
@@ -26,6 +30,14 @@ public class MachineManager extends Agent implements Manager<MachineAgent, Machi
 
 	private void setupSupervisor() {
 		supervisor = null;
+	}
+
+	private void setupWorkingMachines() {
+		startWorkerAgent(MachineType.Sole);
+		startWorkerAgent(MachineType.DetailFabric);
+		startWorkerAgent(MachineType.InnerFabric);
+		startWorkerAgent(MachineType.Outsole);
+		startWorkerAgent(MachineType.SurfaceFabric);
 	}
 
 	private void setupSpareMachines() {
@@ -45,14 +57,6 @@ public class MachineManager extends Agent implements Manager<MachineAgent, Machi
 		getSpareMachines().put(MachineType.SurfaceFabric, spareUpperMachines);
 	}
 
-	private void setupWorkingMachines() {
-		getWorkingMachines().put(MachineType.Sole, null);
-		getWorkingMachines().put(MachineType.DetailFabric, null);
-		getWorkingMachines().put(MachineType.InnerFabric, null);
-		getWorkingMachines().put(MachineType.Outsole, null);
-		getWorkingMachines().put(MachineType.SurfaceFabric, null);
-	}
-
 	@Override
 	public AID getSupervisor() {
 		return supervisor;
@@ -66,5 +70,16 @@ public class MachineManager extends Agent implements Manager<MachineAgent, Machi
 	@Override
 	public Map<MachineType, List<MachineAgent>> getSpareMachines() {
 		return spareMachines;
+	}
+
+	private void startWorkerAgent(MachineType type) {
+		ContainerController cc = getContainerController();
+		try {
+			AgentController ac = cc.createNewAgent(type.name(), "agents.workers.machines.MachineAgent", new Object[0]);
+			ac.start();
+			getWorkingMachines().put(type, null);
+		} catch (StaleProxyException e) {
+			e.printStackTrace();
+		}
 	}
 }
