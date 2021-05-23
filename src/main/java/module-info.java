@@ -7,9 +7,10 @@ module agents {
 	exports agents;
 	exports agents.product;
 	exports agents.managers;
-	exports agents.assemblers;
-	exports agents.utils;
+	exports agents.workers.assemlers;
+	exports agents.workers.machines;
 	exports agents.workers;
+	exports agents.utils;
 	opens agents.product;
 	opens agents to javafx.fxml;
     opens agents.workers to jade;
