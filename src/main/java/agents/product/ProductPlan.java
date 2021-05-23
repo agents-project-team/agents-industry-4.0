@@ -1,6 +1,4 @@
 package agents.product;
-
-
 import agents.workers.machines.MachineType;
 import java.util.Map;
 

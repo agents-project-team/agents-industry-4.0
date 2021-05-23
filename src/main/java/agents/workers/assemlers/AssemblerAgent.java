@@ -5,7 +5,6 @@ import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class AssemblerAgent extends Agent implements Worker {
     private AssemblerType assemblerType;
