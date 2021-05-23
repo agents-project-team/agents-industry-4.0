@@ -1,7 +1,7 @@
 package agents.product;
 
 
-import agents.workers.MachineType;
+import agents.workers.machines.MachineType;
 import java.util.Map;
 
 //Blueprint class
@@ -12,10 +12,10 @@ public class ProductPlan {
     public Map<MachineType, String>  planParts;
 
     public ProductPlan(ProductOrder order){
-        this.Id = order.orderId;
-        this.priority = order.orderPriority;
-        this.amount = order.productAmount;
-        createProductPlan(order.productId);
+        this.Id = order.getOrderId();
+        this.priority = order.getOrderPriority();
+        this.amount = order.getProductAmount();
+        createProductPlan(order.getProductId());
     }
 
     public void createProductPlan(String productId){
