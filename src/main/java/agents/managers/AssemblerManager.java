@@ -1,7 +1,7 @@
 package agents.managers;
 
-import agents.assemblers.Assembler;
-import agents.assemblers.AssemblerType;
+import agents.workers.assemlers.Assembler;
+import agents.workers.assemlers.AssemblerType;
 import jade.core.AID;
 import jade.core.Agent;
 import java.util.ArrayList;

@@ -1,7 +1,6 @@
 package agents.managers;
 
-import agents.workers.Machine;
-import agents.workers.MachineType;
+import agents.workers.machines.MachineType;
 import jade.core.AID;
 import jade.core.Agent;
 import java.util.ArrayList;
