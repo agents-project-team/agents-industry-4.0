@@ -24,5 +24,4 @@ public class JsonConverter {
 			throw new IllegalStateException();
 		}
 	}
-
 }
