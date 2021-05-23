@@ -8,7 +8,6 @@ import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,17 +26,17 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		setupSupervisor();
 		setupWorkingAssemblers();
 		setupSpareAssemblers();
+		setupBehaviours();
+	}
 
+	private void setupBehaviours() {
 		addBehaviour(new CyclicBehaviour() {
 			@Override
 			public void action() {
-				ACLMessage msg = receive();
-
+				ACLMessage msg = blockingReceive();
 				if (msg != null) {
 					System.out.println(msg.getContent());
 				}
-
-				block();
 			}
 		});
 	}
@@ -50,17 +49,6 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		startAssemblerAgent(AssemblerType.Sole);
 		startAssemblerAgent(AssemblerType.Final);
 		startAssemblerAgent(AssemblerType.Fabric);
-
-		addBehaviour(new CyclicBehaviour() {
-			@Override
-			public void action() {
-				ACLMessage msg = receive();
-				if (msg != null) {
-					System.out.println(msg.getContent());
-				}
-				block();
-			}
-		});
 	}
 
 	private void setupSpareAssemblers() {

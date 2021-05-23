@@ -26,7 +26,10 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 		setupSupervisor();
 		setupWorkingMachines();
 		setupSpareMachines();
+		setupBehaviours();
+	}
 
+	private void setupBehaviours() {
 		addBehaviour(new CyclicBehaviour() {
 			@Override
 			public void action() {
