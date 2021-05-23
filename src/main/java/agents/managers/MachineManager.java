@@ -1,10 +1,14 @@
 package agents.managers;
 
+import agents.product.ProductOrder;
+import agents.product.ProductPlan;
+import agents.utils.JsonConverter;
 import agents.workers.machines.MachineType;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
+import jade.tools.sniffer.Message;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import java.util.ArrayList;
@@ -14,6 +18,8 @@ import java.util.Map;
 
 public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
+	private List<ProductPlan> currentPlans;
+
 	private AID supervisor;
 
 	private Map<MachineType, AID> workingMachines = new HashMap<>();
@@ -22,16 +28,31 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
 	@Override
 	protected void setup() {
+		currentPlans = new ArrayList<>();
 		setupSupervisor();
 		setupWorkingMachines();
 		setupSpareMachines();
 
+		//Sending the first task handling
 		addBehaviour(new CyclicBehaviour() {
 			@Override
 			public void action() {
-				ACLMessage msg = blockingReceive();
+				ACLMessage msg = receive();
 				if (msg != null) {
-					System.out.println(msg.getContent());
+					//System.out.println(msg.getContent());
+					if(msg.getSender() == supervisor){
+						ProductPlan plan = JsonConverter.fromJsonString(msg.getContent(), ProductPlan.class);
+						currentPlans.add(plan);
+					}else{
+						if(msg.getContent() == "Done"){
+							//Handle decreasing product plan counter
+							MachineType type = getKey(workingMachines, msg.getSender());
+							ProductPlan highestPlan = getHighestPriorityPlan();
+							assignTaskToMachine(highestPlan.getPlanParts().get(type), msg.getSender());
+						}
+					}
+				}else{
+					block();
 				}
 			}
 		});
@@ -90,5 +111,31 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	private void assignTaskToMachine(String taskString, AID machineID){
+		ACLMessage task = new ACLMessage(ACLMessage.INFORM);
+		task.addReceiver(machineID);
+		task.setContent(taskString);
+		send(task);
+	}
+
+	public static <K, V> K getKey(Map<K,V> map, V value){
+		for(K key: map.keySet()){
+			if(value.equals(map.get(key))) return key;
+		}
+		return null;
+	}
+
+	private ProductPlan getHighestPriorityPlan(){
+		ProductPlan plan = null;
+		int maxPriority = 0;
+		for(var p : currentPlans){
+			if(p.getPriority() > maxPriority){
+				maxPriority = p.getPriority();
+				plan = p;
+			}
+		}
+		return plan;
 	}
 }
