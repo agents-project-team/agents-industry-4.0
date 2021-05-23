@@ -21,19 +21,19 @@ public class ProductPlan {
         for(String var : types) {
             switch (var.charAt(0)) {
                 case 'A':
-                    planParts.put(MachineType.SurfaceFabric, var.substring(1, var.length()));
+					planParts.put(MachineType.SurfaceFabric, var.substring(1));
                     break;
                 case 'B':
-                    planParts.put(MachineType.InnerFabric, var.substring(1, var.length()));
+					planParts.put(MachineType.InnerFabric, var.substring(1));
                     break;
                 case 'C':
-                    planParts.put(MachineType.DetailFabric, var.substring(1, var.length()));
+					planParts.put(MachineType.DetailFabric, var.substring(1));
                     break;
                 case 'D':
-                    planParts.put(MachineType.Sole, var.substring(1, var.length()));
+					planParts.put(MachineType.Sole, var.substring(1));
                     break;
                 case 'E':
-                    planParts.put(MachineType.Outsole, var.substring(1, var.length()));
+					planParts.put(MachineType.Outsole, var.substring(1));
                     break;
             }
         }

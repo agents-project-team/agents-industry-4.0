@@ -6,8 +6,10 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 
 public abstract class Worker extends Agent {
+
     protected volatile boolean isFailing = false;
-    protected AID managerId;
+
+	private AID managerId;
 
     @Override
     protected void setup() {
@@ -15,7 +17,7 @@ public abstract class Worker extends Agent {
 		setShuttingDownBehaviour();
     }
 
-    protected void setShuttingDownBehaviour() {
+	private void setShuttingDownBehaviour() {
         var shuttingDownBehaviour = new CyclicBehaviour() {
             @Override
             public void action() {
@@ -24,7 +26,7 @@ public abstract class Worker extends Agent {
 
 				var iAmDeadMessage = new ACLMessage();
                 iAmDeadMessage.addReceiver(managerId);
-                iAmDeadMessage.setContent("I am dead");
+                iAmDeadMessage.setContent("I am dead " + getLocalName());
                 iAmDeadMessage.setPerformative(ACLMessage.CANCEL);
                 send(iAmDeadMessage);
 
