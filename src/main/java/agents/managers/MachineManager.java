@@ -1,6 +1,5 @@
 package agents.managers;
 
-import agents.workers.machines.MachineAgent;
 import agents.workers.machines.MachineType;
 import jade.core.AID;
 import jade.core.Agent;
@@ -8,19 +7,18 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
-import jade.wrapper.StaleProxyException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MachineManager extends Agent implements Manager<MachineAgent, MachineType> {
+public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
 	private AID supervisor;
 
-	private Map<MachineType, MachineAgent> workingMachines = new HashMap<>();
+	private Map<MachineType, AID> workingMachines = new HashMap<>();
 
-	private Map<MachineType, List<MachineAgent>> spareMachines = new HashMap<>();
+	private Map<MachineType, List<AID>> spareMachines = new HashMap<>();
 
 	@Override
 	protected void setup() {
@@ -31,11 +29,10 @@ public class MachineManager extends Agent implements Manager<MachineAgent, Machi
 		addBehaviour(new CyclicBehaviour() {
 			@Override
 			public void action() {
-				ACLMessage msg = receive();
+				ACLMessage msg = blockingReceive();
 				if (msg != null) {
 					System.out.println(msg.getContent());
 				}
-				block();
 			}
 		});
 	}
@@ -53,19 +50,19 @@ public class MachineManager extends Agent implements Manager<MachineAgent, Machi
 	}
 
 	private void setupSpareMachines() {
-		List<MachineAgent> spareSolesMachines = new ArrayList<>();
+		List<AID> spareSolesMachines = new ArrayList<>();
 		getSpareMachines().put(MachineType.Sole, spareSolesMachines);
 
-		List<MachineAgent> spareCounterMachines = new ArrayList<>();
+		List<AID> spareCounterMachines = new ArrayList<>();
 		getSpareMachines().put(MachineType.DetailFabric, spareCounterMachines);
 
-		List<MachineAgent> spareEyeletsMachines = new ArrayList<>();
+		List<AID> spareEyeletsMachines = new ArrayList<>();
 		getSpareMachines().put(MachineType.InnerFabric, spareEyeletsMachines);
 
-		List<MachineAgent> spareTongueMachines = new ArrayList<>();
+		List<AID> spareTongueMachines = new ArrayList<>();
 		getSpareMachines().put(MachineType.Outsole, spareTongueMachines);
 
-		List<MachineAgent> spareUpperMachines = new ArrayList<>();
+		List<AID> spareUpperMachines = new ArrayList<>();
 		getSpareMachines().put(MachineType.SurfaceFabric, spareUpperMachines);
 	}
 
@@ -75,12 +72,12 @@ public class MachineManager extends Agent implements Manager<MachineAgent, Machi
 	}
 
 	@Override
-	public Map<MachineType, MachineAgent> getWorkingMachines() {
+	public Map<MachineType, AID> getWorkingMachines() {
 		return workingMachines;
 	}
 
 	@Override
-	public Map<MachineType, List<MachineAgent>> getSpareMachines() {
+	public Map<MachineType, List<AID>> getSpareMachines() {
 		return spareMachines;
 	}
 
@@ -89,8 +86,8 @@ public class MachineManager extends Agent implements Manager<MachineAgent, Machi
 		try {
 			AgentController ac = cc.createNewAgent(type.name(), "agents.workers.machines.MachineAgent", new Object[]{getAID()});
 			ac.start();
-			getWorkingMachines().put(type, null);
-		} catch (StaleProxyException e) {
+			getWorkingMachines().put(type, new AID(ac.getName(), AID.ISLOCALNAME));
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}

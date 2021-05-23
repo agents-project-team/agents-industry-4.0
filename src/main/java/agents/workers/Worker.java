@@ -28,7 +28,7 @@ public abstract class Worker extends Agent {
                 iAmDeadMessage.setPerformative(ACLMessage.CANCEL);
                 send(iAmDeadMessage);
 
-				takeDown();
+				doDelete();
             }
         };
 
