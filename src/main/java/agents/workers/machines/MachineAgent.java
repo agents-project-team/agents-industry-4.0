@@ -12,10 +12,6 @@ public class MachineAgent extends Worker {
     private AID assemblerId;
     private int seconds;
 
-    public MachineAgent(AID managerId) {
-        super(managerId);
-    }
-
     @Override
     protected void setup() {
         super.setup();

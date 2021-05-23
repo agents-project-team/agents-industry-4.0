@@ -1,10 +1,6 @@
 package agents.workers.assemlers;
 
 import agents.workers.Worker;
-import jade.core.AID;
-import jade.core.Agent;
-import jade.core.behaviours.CyclicBehaviour;
-
 import java.util.ArrayList;
 
 public class AssemblerAgent extends Worker {
@@ -12,8 +8,8 @@ public class AssemblerAgent extends Worker {
     private Object blueprint;
     private final ArrayList<Object> parts = new ArrayList<>();
 
-    public AssemblerAgent(AID managerId) {
-        super(managerId);
+	public AssemblerAgent() {
+		super();
     }
 
     @Override

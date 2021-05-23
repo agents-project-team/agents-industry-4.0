@@ -4,6 +4,8 @@ import agents.workers.machines.MachineAgent;
 import agents.workers.machines.MachineType;
 import jade.core.AID;
 import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
+import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
@@ -20,12 +22,22 @@ public class MachineManager extends Agent implements Manager<MachineAgent, Machi
 
 	private Map<MachineType, List<MachineAgent>> spareMachines = new HashMap<>();
 
-
 	@Override
 	protected void setup() {
 		setupSupervisor();
 		setupWorkingMachines();
 		setupSpareMachines();
+
+		addBehaviour(new CyclicBehaviour() {
+			@Override
+			public void action() {
+				ACLMessage msg = receive();
+				if (msg != null) {
+					System.out.println(msg.getContent());
+				}
+				block();
+			}
+		});
 	}
 
 	private void setupSupervisor() {
@@ -75,7 +87,7 @@ public class MachineManager extends Agent implements Manager<MachineAgent, Machi
 	private void startWorkerAgent(MachineType type) {
 		ContainerController cc = getContainerController();
 		try {
-			AgentController ac = cc.createNewAgent(type.name(), "agents.workers.machines.MachineAgent", new Object[0]);
+			AgentController ac = cc.createNewAgent(type.name(), "agents.workers.machines.MachineAgent", new Object[]{getAID()});
 			ac.start();
 			getWorkingMachines().put(type, null);
 		} catch (StaleProxyException e) {

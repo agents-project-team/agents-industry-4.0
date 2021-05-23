@@ -9,30 +9,26 @@ public abstract class Worker extends Agent {
     protected volatile boolean isFailing = false;
     protected AID managerId;
 
-    public Worker(AID managerId) {
-        this.managerId = managerId;
-    }
-
     @Override
     protected void setup() {
-        setShuttingDownBehaviour();
+		this.managerId = (AID) getArguments()[0];
+		setShuttingDownBehaviour();
     }
 
     protected void setShuttingDownBehaviour() {
         var shuttingDownBehaviour = new CyclicBehaviour() {
             @Override
             public void action() {
-//                while (!isFailing) {
-//                    Thread.onSpinWait();
-//                }
 
-                block(3000);
+				doWait(10000);
 
-                var iAmDeadMessage = new ACLMessage();
+				var iAmDeadMessage = new ACLMessage();
                 iAmDeadMessage.addReceiver(managerId);
                 iAmDeadMessage.setContent("I am dead");
                 iAmDeadMessage.setPerformative(ACLMessage.CANCEL);
                 send(iAmDeadMessage);
+
+				takeDown();
             }
         };
 
