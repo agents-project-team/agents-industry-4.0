@@ -1,8 +1,11 @@
 package agents.supervisor;
 
 import agents.product.ProductOrder;
+import agents.product.ProductPlan;
 import jade.core.AID;
 import jade.core.Agent;
+import jade.core.behaviours.TickerBehaviour;
+import jade.lang.acl.ACLMessage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +21,20 @@ public class SupervisorAgent extends Agent {
         receivedOrders = new ArrayList<>();
         machineManager = null;
         assemblerManager = null;
+
+        //Receiving messages behaviour
+        addBehaviour(new TickerBehaviour(this, 2000) {
+            @Override
+            protected void onTick() {
+                ACLMessage msg = receive();
+                if(msg != null){
+                    //Parse Message
+                    //Create new order
+                    ProductOrder order = new ProductOrder("AXX1-BXX1-CXX1-DXX1-EXX1", 100, 1);
+                    receivedOrders.add(order);
+                }
+            }
+        });
     }
 
     public void connectAssemblerManager(AID assemblerManager){
