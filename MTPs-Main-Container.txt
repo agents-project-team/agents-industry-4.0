@@ -1,1 +1,1 @@
-http://10.100.13.124:7778/acc
+http://localhost:7778/acc
