@@ -1,12 +1,10 @@
 package agents.supervisor;
 
 import agents.product.ProductOrder;
-import agents.product.ProductPlan;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
-
 import java.util.ArrayList;
 import java.util.List;
 
