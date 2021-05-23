@@ -24,7 +24,7 @@ public abstract class Worker extends Agent {
 
 				var iAmDeadMessage = new ACLMessage();
                 iAmDeadMessage.addReceiver(managerId);
-                iAmDeadMessage.setContent("I am dead");
+                iAmDeadMessage.setContent("I am dead " + getLocalName());
                 iAmDeadMessage.setPerformative(ACLMessage.CANCEL);
                 send(iAmDeadMessage);
 

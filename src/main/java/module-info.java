@@ -7,7 +7,7 @@ module agents {
 	exports agents;
 	exports agents.product;
 	exports agents.managers;
-	exports agents.workers.assemlers;
+	exports agents.workers.assemblers;
 	exports agents.workers.machines;
 	exports agents.workers;
 	exports agents.utils;
