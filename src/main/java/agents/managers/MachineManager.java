@@ -33,24 +33,24 @@ public class MachineManager extends Agent implements Manager<Machine, MachineTyp
 		getSpareMachines().put(MachineType.Sole, spareSolesMachines);
 
 		List<Machine> spareCounterMachines = new ArrayList<>();
-		getSpareMachines().put(MachineType.Counter, spareCounterMachines);
+		getSpareMachines().put(MachineType.DetailFabric, spareCounterMachines);
 
 		List<Machine> spareEyeletsMachines = new ArrayList<>();
-		getSpareMachines().put(MachineType.Eyelets, spareEyeletsMachines);
+		getSpareMachines().put(MachineType.InnerFabric, spareEyeletsMachines);
 
 		List<Machine> spareTongueMachines = new ArrayList<>();
-		getSpareMachines().put(MachineType.Tongue, spareTongueMachines);
+		getSpareMachines().put(MachineType.Outsole, spareTongueMachines);
 
 		List<Machine> spareUpperMachines = new ArrayList<>();
-		getSpareMachines().put(MachineType.Fabric, spareUpperMachines);
+		getSpareMachines().put(MachineType.SurfaceFabric, spareUpperMachines);
 	}
 
 	private void setupWorkingMachines() {
 		getWorkingMachines().put(MachineType.Sole, null);
-		getWorkingMachines().put(MachineType.Counter, null);
-		getWorkingMachines().put(MachineType.Eyelets, null);
-		getWorkingMachines().put(MachineType.Tongue, null);
-		getWorkingMachines().put(MachineType.Fabric, null);
+		getWorkingMachines().put(MachineType.DetailFabric, null);
+		getWorkingMachines().put(MachineType.InnerFabric, null);
+		getWorkingMachines().put(MachineType.Outsole, null);
+		getWorkingMachines().put(MachineType.SurfaceFabric, null);
 	}
 
 	@Override
