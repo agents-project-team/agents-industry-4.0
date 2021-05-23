@@ -37,7 +37,6 @@ public class App extends Application {
 
 		String[] parameters = {
 				"-gui",
-				"Test:agents.workers.TestAgent"
 		};
 
 		Boot.main(parameters);
