@@ -11,6 +11,7 @@ module agents {
 	exports agents.workers.machines;
 	exports agents.workers;
 	exports agents.utils;
+
 	opens agents.product;
 	opens agents to javafx.fxml;
     opens agents.workers to jade;
