@@ -16,7 +16,6 @@ public class AssemblerManager extends Agent implements Manager<Assembler, Assemb
 
 	private Map<AssemblerType, List<Assembler>> spareAssemblers;
 
-
 	@Override
 	protected void setup() {
 		setupSupervisor();
