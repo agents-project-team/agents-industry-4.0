@@ -1,24 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="ALL" />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="71d9fd8d-3341-4f3f-97fe-92e2a82dd933" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/hs_err_pid15570.log" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/hs_err_pid15676.log" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/agents/assemblers/Assembler.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/agents/assemblers/AssemblerType.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/agents/managers/AssemblerManager.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/agents/managers/MachineManager.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/agents/managers/Manager.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/agents/workers/Machine.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/java/agents/workers/MachineType.java" afterDir="false" />
+    <list default="true" id="71d9fd8d-3341-4f3f-97fe-92e2a82dd933" name="Default Changelist" comment="Supervisor Agent setup">
+      <change afterPath="$PROJECT_DIR$/.idea/jarRepositories.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/APDescription.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/MTPs-Main-Container.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/agents/product/ProductOrder.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/agents/supervisor/SupervisorAgent.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/APDescription.txt" beforeDir="false" afterPath="$PROJECT_DIR$/APDescription.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MTPs-Main-Container.txt" beforeDir="false" afterPath="$PROJECT_DIR$/MTPs-Main-Container.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/agents/App.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/agents/App.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/agents/PrimaryController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/agents/PrimaryController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/agents/SecondaryController.java" beforeDir="false" />
     </list>
-    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -49,23 +46,23 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="MavenImportPreferences">
-    <option name="importingSettings">
-      <MavenImportingSettings>
-        <option name="importAutomatically" value="true" />
-      </MavenImportingSettings>
-    </option>
-  </component>
   <component name="ProjectId" id="1sOkCSuxKTrfZoQcIZ77qTTKDrg" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
     <ConfirmationsSetting value="2" id="Add" />
   </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
   <component name="PropertiesComponent">
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="aspect.path.notification.shown" value="true" />
-    <property name="project.structure.last.edited" value="Libraries" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/src/main/java/agents/supervisor" />
+    <property name="project.structure.last.edited" value="Modules" />
     <property name="project.structure.proportion" value="0.15" />
     <property name="project.structure.side.proportion" value="0.2" />
     <property name="settings.editor.selected.configurable" value="reference.projectsettings.compiler.javacompiler" />
@@ -75,22 +72,13 @@
       <recent name="agents.assemblers" />
     </key>
   </component>
-  <component name="RunDashboard">
-    <option name="ruleStates">
-      <list>
-        <RuleState>
-          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
-        </RuleState>
-        <RuleState>
-          <option name="name" value="StatusDashboardGroupingRule" />
-        </RuleState>
-      </list>
-    </option>
-  </component>
   <component name="RunManager">
-    <configuration name="App" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="agents.App" />
-      <module name="industry4.0" />
+    <configuration name="Test" type="Application" factoryName="Application" temporary="true">
+      <option name="ALTERNATIVE_JRE_PATH" value="corretto-11" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <option name="MAIN_CLASS_NAME" value="jade.Boot" />
+      <module name="industry" />
+      <option name="PROGRAM_PARAMETERS" value="-gui test:agents.supervisor.SupervisorAgent" />
       <extension name="coverage">
         <pattern>
           <option name="PATTERN" value="agents.*" />
@@ -103,10 +91,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Application.App" />
+        <item itemvalue="Application.Test" />
       </list>
     </recent_temporary>
   </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="SvnConfiguration">
     <configuration />
   </component>
@@ -121,6 +110,7 @@
       <workItem from="1620751434170" duration="1771000" />
       <workItem from="1620806676814" duration="1296000" />
       <workItem from="1620831282374" duration="3565000" />
+      <workItem from="1621752394443" duration="1076000" />
     </task>
     <task id="LOCAL-00001" summary="Javafx version fix + module info change">
       <created>1620752561556</created>
@@ -133,24 +123,24 @@
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
-    <option name="version" value="1" />
+    <option name="version" value="3" />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
       <map>
         <entry key="MAIN">
           <value>
-            <State>
-              <option name="COLUMN_ORDER" />
-            </State>
+            <State />
           </value>
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="Javafx version fix + module info change" />
-    <option name="LAST_COMMIT_MESSAGE" value="Javafx version fix + module info change" />
+    <MESSAGE value="Supervisor Agent setup" />
+    <option name="LAST_COMMIT_MESSAGE" value="Supervisor Agent setup" />
   </component>
 </project>
