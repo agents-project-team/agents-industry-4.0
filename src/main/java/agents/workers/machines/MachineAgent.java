@@ -6,11 +6,16 @@ import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
 
 public class MachineAgent extends Worker {
-    private String customState;
-    private Object bluePrint;
-    private int numberOfDetails;
-    private AID assemblerId;
-    private int seconds;
+
+	private String customState;
+
+	private Object bluePrint;
+
+	private int numberOfDetails;
+
+	private AID assemblerId;
+
+	private int seconds;
 
     @Override
     protected void setup() {
