@@ -11,16 +11,16 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.ArrayList;
 
 public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
-	private List<ProductPlan> currentPlans;
-
 	private AID supervisor;
+
+	private List<ProductPlan> currentPlans;
 
 	private Map<MachineType, AID> workingMachines = new HashMap<>();
 
@@ -28,6 +28,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
 	@Override
 	protected void setup() {
+		this.supervisor = (AID) getArguments()[0];
 		currentPlans = new ArrayList<>();
 		setupSupervisor();
 		setupWorkingMachines();
@@ -40,22 +41,21 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 		addBehaviour(new CyclicBehaviour() {
 			@Override
 			public void action() {
-				ACLMessage msg = receive();
+				ACLMessage msg = blockingReceive();
 				if (msg != null) {
-					//System.out.println(msg.getContent());
-					if(msg.getSender() == supervisor){
+					System.out.println(msg.getContent());
+					if (msg.getSender() == supervisor) {
 						ProductPlan plan = JsonConverter.fromJsonString(msg.getContent(), ProductPlan.class);
 						currentPlans.add(plan);
-					}else{
-						if(msg.getContent() == "Done"){
-							//Handle decreasing product plan counter
-							MachineType type = getKey(workingMachines, msg.getSender());
-							ProductPlan highestPlan = getHighestPriorityPlan();
-							assignTaskToMachine(highestPlan.getPlanParts().get(type), msg.getSender());
-						}
+					} else if (msg.getContent().equals("Done")) {
+						//Handle decreasing product plan counter
+						MachineType type = getKey(workingMachines, msg.getSender());
+						ProductPlan highestPlan = getHighestPriorityPlan();
+						assignTaskToMachine(highestPlan.getPlanParts().get(type), msg.getSender());
+					} else if (msg.getPerformative() == ACLMessage.CANCEL) {
+						AID deadMachine = msg.getSender();
+						// TODO: Machine replacement
 					}
-				}else{
-					block();
 				}
 			}
 		});

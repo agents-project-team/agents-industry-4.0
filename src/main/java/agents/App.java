@@ -37,12 +37,11 @@ public class App extends Application {
 
 		String[] parameters = {
 				"-gui",
-				"MachineManager:agents.managers.MachineManager;" +
-                "AssemblerManager:agents.managers.AssemblerManager;"
+				"Supervisor:agents.supervisor.SupervisorAgent;"
 		};
 
+		launch();
 		Boot.main(parameters);
-        launch();
     }
 
 }

@@ -4,10 +4,14 @@ import java.util.Map;
 
 //Blueprint class
 public class ProductPlan {
+
     private final int Id;
-    private final int priority;
-    private int amount;
-    private Map<MachineType, String>  planParts;
+
+	private final int priority;
+
+	private int amount;
+
+	private Map<MachineType, String>  planParts;
 
     public ProductPlan(ProductOrder order){
         this.Id = order.getOrderId();
@@ -16,7 +20,7 @@ public class ProductPlan {
         createProductPlan(order.getProductId());
     }
 
-    public void createProductPlan(String productId){
+	private void createProductPlan(String productId) {
         String[] types = productId.split("-");
         for(String var : types) {
             switch (var.charAt(0)) {

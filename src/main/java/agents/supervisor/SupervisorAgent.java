@@ -1,35 +1,36 @@
 package agents.supervisor;
 
 import agents.product.ProductOrder;
-import agents.product.ProductPlan;
 import agents.utils.JsonConverter;
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.ReceiverBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
-
+import jade.wrapper.AgentController;
+import jade.wrapper.ContainerController;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SupervisorAgent extends Agent {
-    private List<ProductOrder> receivedOrders;
-    private List<ProductOrder> sentOrders;
+
+	private List<ProductOrder> receivedOrders = new ArrayList<>();
+
+	private List<ProductOrder> sentOrders = new ArrayList<>();
     private AID machineManager;
     private AID assemblerManager;
 
     @Override
     protected void setup() {
         System.out.println("Supervisor agent with id:" + this.getLocalName() + " has started!");
-        receivedOrders = new ArrayList<>();
-        sentOrders = new ArrayList<>();
-        machineManager = null;
-        assemblerManager = null;
-        //Send Messages behaviour
+
+		machineManager = startMachineManager();
+		assemblerManager = startAssemblerManager();
+
         addBehaviour(new TickerBehaviour(this, 2000) {
             @Override
             protected void onTick() {
-                if(receivedOrders.size() > 0){
+				if (receivedOrders.size() > 0) {
+					System.out.println("SEND TASK");
                     ProductOrder order = receivedOrders.get(0);
                     ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
                     msg.addReceiver(machineManager);
@@ -42,6 +43,30 @@ public class SupervisorAgent extends Agent {
             }
         });
     }
+
+	private AID startMachineManager() {
+		try {
+			ContainerController cc = getContainerController();
+			AgentController ac = cc.createNewAgent("MachineManager", "agents.managers.MachineManager", new Object[]{getAID()});
+			ac.start();
+			return new AID(ac.getName(), AID.ISLOCALNAME);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new IllegalStateException();
+		}
+	}
+
+	private AID startAssemblerManager() {
+		try {
+			ContainerController cc = getContainerController();
+			AgentController ac = cc.createNewAgent("AssemblerManager", "agents.managers.AssemblerManager", new Object[]{getAID()});
+			ac.start();
+			return new AID(ac.getName(), AID.ISLOCALNAME);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new IllegalStateException();
+		}
+	}
 
     public void connectAssemblerManager(AID assemblerManager){
         this.assemblerManager = assemblerManager;
@@ -60,7 +85,10 @@ public class SupervisorAgent extends Agent {
     }
 
     public AID getMachineManager(){ return machineManager; }
-    public AID getAssemblerManager(){ return assemblerManager ;}
-    public List<ProductOrder> getReceivedOrders(){ return receivedOrders; }
-    public List<ProductOrder> getSentOrders(){ return sentOrders; }
+
+	public AID getAssemblerManager(){ return assemblerManager ;}
+
+	public List<ProductOrder> getReceivedOrders(){ return receivedOrders; }
+
+	public List<ProductOrder> getSentOrders(){ return sentOrders; }
 }

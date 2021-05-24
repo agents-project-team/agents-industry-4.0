@@ -1,7 +1,6 @@
 package agents.managers;
 
 import agents.workers.assemblers.AssemblerType;
-import agents.workers.machines.MachineType;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.Profile;
@@ -11,7 +10,6 @@ import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

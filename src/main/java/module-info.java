@@ -10,6 +10,7 @@ module agents {
 	exports agents.workers.assemblers;
 	exports agents.workers.machines;
 	exports agents.workers;
+	exports agents.supervisor;
 	exports agents.utils;
 
 	opens agents.product;
