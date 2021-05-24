@@ -2,7 +2,7 @@ package agents.workers;
 
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import java.util.Random;
 
@@ -19,13 +19,11 @@ public abstract class Worker extends Agent {
     }
 
 	private void setShuttingDownBehaviour() {
-        var shuttingDownBehaviour = new CyclicBehaviour() {
-            @Override
-            public void action() {
+		addBehaviour(new TickerBehaviour(this, 5000) {
+			@Override
+			protected void onTick() {
 				Random random = new Random();
 				int randomNumber = random.nextInt(100);
-
-				doWait(5000);
 
 				if (randomNumber < FAILURE_RATE) {
 					var iAmDeadMessage = new ACLMessage();
@@ -36,9 +34,7 @@ public abstract class Worker extends Agent {
 
 					doDelete();
 				}
-            }
-        };
-
-        this.addBehaviour(shuttingDownBehaviour);
+			}
+		});
     }
 }

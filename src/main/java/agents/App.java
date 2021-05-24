@@ -40,8 +40,8 @@ public class App extends Application {
 				"Supervisor:agents.supervisor.SupervisorAgent;"
 		};
 
-		launch();
 		Boot.main(parameters);
+		launch();
     }
 
 }

@@ -20,7 +20,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
 	private AID supervisor;
 
-	private List<ProductPlan> currentPlans;
+	private List<ProductPlan> currentPlans = new ArrayList<>();
 
 	private Map<MachineType, AID> workingMachines = new HashMap<>();
 
@@ -28,8 +28,6 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
 	@Override
 	protected void setup() {
-		this.supervisor = (AID) getArguments()[0];
-		currentPlans = new ArrayList<>();
 		setupSupervisor();
 		setupWorkingMachines();
 		setupSpareMachines();
@@ -41,9 +39,8 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 		addBehaviour(new CyclicBehaviour() {
 			@Override
 			public void action() {
-				ACLMessage msg = blockingReceive();
+				ACLMessage msg = receive();
 				if (msg != null) {
-					System.out.println(msg.getContent());
 					if (msg.getSender() == supervisor) {
 						ProductPlan plan = JsonConverter.fromJsonString(msg.getContent(), ProductPlan.class);
 						currentPlans.add(plan);
@@ -56,13 +53,15 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 						AID deadMachine = msg.getSender();
 						// TODO: Machine replacement
 					}
+				} else {
+					block();
 				}
 			}
 		});
 	}
 
 	private void setupSupervisor() {
-		supervisor = null;
+		supervisor = (AID) getArguments()[0];
 	}
 
 	private void setupWorkingMachines() {

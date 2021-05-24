@@ -13,10 +13,12 @@ import java.util.List;
 
 public class SupervisorAgent extends Agent {
 
-	private List<ProductOrder> receivedOrders = new ArrayList<>();
+	private List<ProductOrder> receivedOrders = new ArrayList<>(List.of(new ProductOrder("TEST_ID", 1, 1), new ProductOrder("TEST_ID", 1, 1)));
 
 	private List<ProductOrder> sentOrders = new ArrayList<>();
+
     private AID machineManager;
+
     private AID assemblerManager;
 
     @Override
@@ -29,12 +31,12 @@ public class SupervisorAgent extends Agent {
         addBehaviour(new TickerBehaviour(this, 2000) {
             @Override
             protected void onTick() {
+				doWait(1000);
 				if (receivedOrders.size() > 0) {
-					System.out.println("SEND TASK");
+					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+					msg.addReceiver(machineManager);
+					msg.addReceiver(assemblerManager);
                     ProductOrder order = receivedOrders.get(0);
-                    ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-                    msg.addReceiver(machineManager);
-                    msg.addReceiver(assemblerManager);
                     msg.setContent(JsonConverter.toJsonString(order));
                     send(msg);
                     receivedOrders.remove(order);
@@ -49,7 +51,7 @@ public class SupervisorAgent extends Agent {
 			ContainerController cc = getContainerController();
 			AgentController ac = cc.createNewAgent("MachineManager", "agents.managers.MachineManager", new Object[]{getAID()});
 			ac.start();
-			return new AID(ac.getName(), AID.ISLOCALNAME);
+			return new AID(ac.getName(), AID.ISGUID);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new IllegalStateException();
@@ -61,7 +63,7 @@ public class SupervisorAgent extends Agent {
 			ContainerController cc = getContainerController();
 			AgentController ac = cc.createNewAgent("AssemblerManager", "agents.managers.AssemblerManager", new Object[]{getAID()});
 			ac.start();
-			return new AID(ac.getName(), AID.ISLOCALNAME);
+			return new AID(ac.getName(), AID.ISGUID);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new IllegalStateException();

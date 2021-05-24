@@ -11,7 +11,7 @@ public class ProductPlan {
 
 	private int amount;
 
-	private Map<MachineType, String>  planParts;
+	private Map<MachineType, String> planParts;
 
     public ProductPlan(ProductOrder order){
         this.Id = order.getOrderId();
