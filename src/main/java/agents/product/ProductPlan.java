@@ -4,10 +4,10 @@ import java.util.Map;
 
 //Blueprint class
 public class ProductPlan {
-    public final int Id;
-    public final int priority;
-    public int amount;
-    public Map<MachineType, String>  planParts;
+    private final int Id;
+    private final int priority;
+    private int amount;
+    private Map<MachineType, String>  planParts;
 
     public ProductPlan(ProductOrder order){
         this.Id = order.getOrderId();
@@ -38,4 +38,12 @@ public class ProductPlan {
             }
         }
     }
+
+    public void updateAmount(int amount){
+        this.amount = amount;
+    }
+    public int getAmount(){ return this.amount; }
+    public int getPriority(){ return this.priority; }
+    public int getId(){ return this.Id; }
+    public Map<MachineType, String> getPlanParts(){ return this.planParts; }
 }
