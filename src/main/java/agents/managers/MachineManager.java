@@ -1,6 +1,5 @@
 package agents.managers;
 
-import agents.product.ProductOrder;
 import agents.product.ProductPlan;
 import agents.utils.JsonConverter;
 import agents.workers.machines.MachineType;
@@ -10,12 +9,12 @@ import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
-import jade.tools.sniffer.Message;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
