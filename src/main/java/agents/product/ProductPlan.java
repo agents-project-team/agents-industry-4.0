@@ -13,7 +13,7 @@ public class ProductPlan {
 
 	private Map<MachineType, String> planParts;
 
-    public ProductPlan(ProductOrder order){
+    public ProductPlan(ProductOrder order) {
         this.Id = order.getOrderId();
         this.priority = order.getOrderPriority();
         this.amount = order.getProductAmount();

@@ -1,5 +1,6 @@
 package agents.managers;
 
+import agents.product.ProductOrder;
 import agents.product.ProductPlan;
 import agents.utils.JsonConverter;
 import agents.workers.machines.MachineType;
@@ -42,9 +43,17 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 			public void action() {
 				ACLMessage msg = receive();
 				if (msg != null) {
-					if (msg.getSender() == supervisor) {
-						ProductPlan plan = JsonConverter.fromJsonString(msg.getContent(), ProductPlan.class);
+					if (msg.getPerformative() == ACLMessage.INFORM) {
+						ProductOrder order = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
+						ProductPlan plan = new ProductPlan(order);
 						currentPlans.add(plan);
+
+						ACLMessage msgToWorkers = new ACLMessage();
+						for (AID worker : workingMachines.values()) {
+							msgToWorkers.addReceiver(worker);
+						}
+						msgToWorkers.setContent(JsonConverter.toJsonString(plan));
+						send(msgToWorkers);
 					} else if (msg.getContent().equals("Done")) {
 						//Handle decreasing product plan counter
 						MachineType type = getKey(workingMachines, msg.getSender());

@@ -31,14 +31,17 @@ public class SupervisorAgent extends Agent {
         addBehaviour(new TickerBehaviour(this, 2000) {
             @Override
             protected void onTick() {
-				doWait(1000);
+				doWait(20000);
 				if (receivedOrders.size() > 0) {
+					ProductOrder order = receivedOrders.get(0);
+					String blueprint = JsonConverter.toJsonString(order);
+
 					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+					msg.setContent(blueprint);
 					msg.addReceiver(machineManager);
 					msg.addReceiver(assemblerManager);
-                    ProductOrder order = receivedOrders.get(0);
-                    msg.setContent(JsonConverter.toJsonString(order));
-                    send(msg);
+					send(msg);
+
                     receivedOrders.remove(order);
                     sentOrders.add(order);
                 }

@@ -1,6 +1,7 @@
 package agents.workers.assemblers;
 
 import agents.workers.Worker;
+import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import java.util.ArrayList;
@@ -25,19 +26,9 @@ public class AssemblerAgent extends Worker {
             public void action() {
                 var receivedMessage = blockingReceive();
                 var content = receivedMessage.getContent();
-                switch (receivedMessage.getPerformative()) {
-                    case ACLMessage.CANCEL:
-                        break;
-                    case ACLMessage.INFORM:
-                        break;
-                    case ACLMessage.ACCEPT_PROPOSAL:
-                        break;
-                    default:
-                        break;
-                }
+                System.out.println("Assembler " + getLocalName() + " " + content);
             }
         };
-
         addBehaviour(communicationBehaviour);
     }
 }
