@@ -12,6 +12,7 @@ import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +52,21 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 						assignTaskToMachine(highestPlan.getPlanParts().get(type), msg.getSender());
 					} else if (msg.getPerformative() == ACLMessage.CANCEL) {
 						AID deadMachine = msg.getSender();
-						// TODO: Machine replacement
+						MachineType key = getKey(workingMachines, deadMachine);
+
+						if (key != null) {
+							var replacementMessage = new ACLMessage();
+							if (spareMachines.get(key).isEmpty()) {
+								System.out.println("No more " + key + " machines left.");
+								return;
+							}
+							replacementMessage.addReceiver(spareMachines.get(key).get(0));
+							replacementMessage.setPerformative(ACLMessage.PROPOSE);
+							send(replacementMessage);
+
+							workingMachines.computeIfPresent(key, (e, a) -> spareMachines.get(key).get(0));
+							spareMachines.get(key).remove(0);
+						}
 					}
 				} else {
 					block();
@@ -75,29 +90,44 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 	private void setupSpareMachines() {
 		ContainerController cc = startBackupContainer();
 
-		getSpareMachines().put(MachineType.Sole, List.of(
-				startBackupWorkerAgent(MachineType.Sole + "1", cc),
-				startBackupWorkerAgent(MachineType.Sole + "2", cc)
+		getSpareMachines().put(MachineType.Sole, new ArrayList<>(
+				Arrays.asList(
+						startBackupWorkerAgent(MachineType.Sole + "1", cc),
+						startBackupWorkerAgent(MachineType.Sole + "2", cc),
+						startBackupWorkerAgent(MachineType.Sole + "3", cc)
+				)
 		));
 
-		getSpareMachines().put(MachineType.DetailFabric, List.of(
-				startBackupWorkerAgent(MachineType.DetailFabric + "1", cc),
-				startBackupWorkerAgent(MachineType.DetailFabric + "2", cc)
+		getSpareMachines().put(MachineType.DetailFabric, new ArrayList<>(
+				Arrays.asList(
+						startBackupWorkerAgent(MachineType.DetailFabric + "1", cc),
+						startBackupWorkerAgent(MachineType.DetailFabric + "2", cc),
+						startBackupWorkerAgent(MachineType.DetailFabric + "3", cc)
+				)
 		));
 
-		getSpareMachines().put(MachineType.InnerFabric, List.of(
-				startBackupWorkerAgent(MachineType.InnerFabric + "1", cc),
-				startBackupWorkerAgent(MachineType.InnerFabric + "2", cc)
+		getSpareMachines().put(MachineType.InnerFabric, new ArrayList<>(
+				Arrays.asList(
+						startBackupWorkerAgent(MachineType.InnerFabric + "1", cc),
+						startBackupWorkerAgent(MachineType.InnerFabric + "2", cc),
+						startBackupWorkerAgent(MachineType.InnerFabric + "3", cc)
+				)
 		));
 
-		getSpareMachines().put(MachineType.Outsole, List.of(
-				startBackupWorkerAgent(MachineType.Outsole + "1", cc),
-				startBackupWorkerAgent(MachineType.Outsole + "2", cc)
+		getSpareMachines().put(MachineType.Outsole, new ArrayList<>(
+				Arrays.asList(
+						startBackupWorkerAgent(MachineType.Outsole + "1", cc),
+						startBackupWorkerAgent(MachineType.Outsole + "2", cc),
+						startBackupWorkerAgent(MachineType.Outsole + "3", cc)
+				)
 		));
 
-		getSpareMachines().put(MachineType.SurfaceFabric, List.of(
-				startBackupWorkerAgent(MachineType.SurfaceFabric + "1", cc),
-				startBackupWorkerAgent(MachineType.SurfaceFabric + "2", cc)
+		getSpareMachines().put(MachineType.SurfaceFabric, new ArrayList<>(
+				Arrays.asList(
+						startBackupWorkerAgent(MachineType.SurfaceFabric + "1", cc),
+						startBackupWorkerAgent(MachineType.SurfaceFabric + "2", cc),
+						startBackupWorkerAgent(MachineType.SurfaceFabric + "3", cc)
+				)
 		));
 	}
 
@@ -129,7 +159,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 			ContainerController cc = getContainerController();
 			AgentController ac = cc.createNewAgent(type.name(), "agents.workers.machines.MachineAgent", new Object[]{getAID()});
 			ac.start();
-			return new AID(ac.getName(), AID.ISLOCALNAME);
+			return new AID(ac.getName(), AID.ISGUID);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new IllegalStateException();
@@ -139,7 +169,8 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 	private AID startBackupWorkerAgent(String name, ContainerController cc) {
 		try {
 			AgentController ac = cc.createNewAgent("Backup" + name, "agents.workers.machines.MachineAgent", new Object[]{getAID()});
-			return new AID(ac.getName(), AID.ISLOCALNAME);
+			ac.start();
+			return new AID(ac.getName(), AID.ISGUID);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new IllegalStateException();

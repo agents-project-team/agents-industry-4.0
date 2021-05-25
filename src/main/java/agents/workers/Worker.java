@@ -4,6 +4,7 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
+import jade.wrapper.ControllerException;
 import java.util.Random;
 
 public abstract class Worker extends Agent {
@@ -26,15 +27,25 @@ public abstract class Worker extends Agent {
 				int randomNumber = random.nextInt(100);
 
 				if (randomNumber < FAILURE_RATE) {
-					var iAmDeadMessage = new ACLMessage();
-					iAmDeadMessage.addReceiver(managerId);
-					iAmDeadMessage.setContent("I am dead " + getLocalName());
-					iAmDeadMessage.setPerformative(ACLMessage.CANCEL);
-					send(iAmDeadMessage);
+					try {
+						String name = getAgent().getContainerController().getContainerName();
+						if (!name.contains("Backup")) {
+							var iAmDeadMessage = new ACLMessage();
+							iAmDeadMessage.addReceiver(managerId);
+							iAmDeadMessage.setContent("I am dead " + getLocalName());
+							iAmDeadMessage.setPerformative(ACLMessage.CANCEL);
+							send(iAmDeadMessage);
 
-					doDelete();
+							doDelete();
+						}
+					} catch (ControllerException ignored) {
+					}
 				}
 			}
 		});
     }
+
+	public AID getManagerId() {
+		return managerId;
+	}
 }

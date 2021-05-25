@@ -36,7 +36,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 			public void action() {
 				ACLMessage msg = blockingReceive();
 				if (msg != null) {
-					System.out.println(msg.getContent());
+					System.out.println("Assembler " + msg.getContent());
 				}
 			}
 		});
