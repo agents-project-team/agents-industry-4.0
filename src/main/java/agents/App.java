@@ -41,7 +41,7 @@ public class App extends Application {
 		};
 
 		Boot.main(parameters);
-		launch();
+		//launch();
     }
 
 }

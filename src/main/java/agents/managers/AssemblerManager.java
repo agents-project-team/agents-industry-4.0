@@ -1,5 +1,8 @@
 package agents.managers;
 
+import agents.product.ProductOrder;
+import agents.product.ProductPlan;
+import agents.utils.JsonConverter;
 import agents.workers.assemblers.AssemblerType;
 import jade.core.AID;
 import jade.core.Agent;
@@ -35,9 +38,15 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 			@Override
 			public void action() {
 				ACLMessage msg = blockingReceive();
-				if (msg != null) {
-					System.out.println(msg.getContent());
+				ProductOrder order = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
+				ProductPlan plan = new ProductPlan(order);
+
+				ACLMessage msgToAssemblers = new ACLMessage();
+				msgToAssemblers.setContent(JsonConverter.toJsonString(plan));
+				for (AID assembler : workingAssemblers.values()) {
+					msgToAssemblers.addReceiver(assembler);
 				}
+				send(msgToAssemblers);
 			}
 		});
 	}
@@ -91,7 +100,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		try {
 			AgentController ac = cc.createNewAgent("Assembler" + type.name(), "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID()});
 			ac.start();
-			return new AID(ac.getName(), AID.ISLOCALNAME);
+			return new AID(ac.getName(), AID.ISGUID);
 		} catch (StaleProxyException e) {
 			throw new IllegalStateException();
 		}
@@ -108,7 +117,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	private AID startBackupAssemblerAgent(String name, ContainerController cc) {
 		try {
 			AgentController ac = cc.createNewAgent("AssemblerBackup" + name, "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID()});
-			return new AID(ac.getName(), AID.ISLOCALNAME);
+			return new AID(ac.getName(), AID.ISGUID);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new IllegalStateException();
