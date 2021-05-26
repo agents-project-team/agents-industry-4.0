@@ -25,6 +25,8 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
 	private List<ProductPlan> currentPlans = new ArrayList<>();
 
+	private List<ProductPlan> finishedPlans = new ArrayList<>();
+
 	private Map<MachineType, AID> workingMachines = new HashMap<>();
 
 	private Map<MachineType, List<AID>> spareMachines = new HashMap<>();
@@ -45,23 +47,35 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 				ACLMessage msg = receive();
 				if (msg != null) {
 					if (msg.getPerformative() == ACLMessage.INFORM) {
-						System.out.print("Message Received from supervisor");
-						ProductOrder order = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
-						ProductPlan plan = new ProductPlan(order);
-						currentPlans.add(plan);
-
-						for (AID worker : workingMachines.values()) {
-							ACLMessage msgToWorker = new ACLMessage(ACLMessage.INFORM);
-							msgToWorker.addReceiver(worker);
-							msgToWorker.setContent(JsonConverter.toJsonString(
-									new PartPlan(plan.getId(), plan.getPlanParts().get(getKey(workingMachines, worker)))));
-							send(msgToWorker);
+						if(msg.getProtocol().equals("ORDER")){
+							//Add order to queue of orders
+							ProductOrder order = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
+							ProductPlan plan = new ProductPlan(order);
+							//Check if contains orders, else send more
+							for (AID worker : workingMachines.values()) {
+								if(checkForMachineAvailability(getKey(workingMachines, worker))) {
+									ACLMessage msgToWorker = new ACLMessage(ACLMessage.REQUEST);
+									msgToWorker.addReceiver(worker);
+									PartPlan partPlanToMachine = new PartPlan(plan.getPlanParts().get(getKey(workingMachines, worker)));
+									partPlanToMachine.setCurrentAmount(1);
+									msgToWorker.setContent(JsonConverter.toJsonString(partPlanToMachine));
+									send(msgToWorker);
+								}
+							}
+							currentPlans.add(plan);
 						}
-					} else if (msg.getContent().equals("Done")) {
-						//Handle decreasing product plan counter
-						MachineType type = getKey(workingMachines, msg.getSender());
-						ProductPlan highestPlan = getHighestPriorityPlan();
-						assignTaskToMachine(new PartPlan(highestPlan.getId(), highestPlan.getPlanParts().get(type)), msg.getSender());
+						if(msg.getProtocol().equals("FTASK")){
+							//Decrease amount functionality
+							PartPlan responsePlan = JsonConverter.fromJsonString(msg.getContent(), PartPlan.class);
+							MachineType key = getKey(workingMachines, msg.getSender());
+							for(ProductPlan plan : currentPlans){
+								if(plan.getId() == responsePlan.getId()) plan.decreasePartPlanAmount(key);
+							}
+							PartPlan highestPartPlan = getHighestPriorityPart(key);
+							if(highestPartPlan != null){
+								assignTaskToMachine(highestPartPlan, msg.getSender());
+							}
+						}
 					} else if (msg.getPerformative() == ACLMessage.CANCEL) {
 						AID deadMachine = msg.getSender();
 						MachineType key = getKey(workingMachines, deadMachine);
@@ -190,7 +204,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 	}
 
 	private void assignTaskToMachine(PartPlan plan, AID machineID){
-		ACLMessage task = new ACLMessage(ACLMessage.INFORM);
+		ACLMessage task = new ACLMessage(ACLMessage.REQUEST);
 		task.addReceiver(machineID);
 		task.setContent(JsonConverter.toJsonString(plan));
 		send(task);
@@ -213,5 +227,22 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 			}
 		}
 		return plan;
+	}
+
+	private PartPlan getHighestPriorityPart(MachineType key){
+		//Sorted list
+		for(var p : currentPlans){
+			PartPlan tmp = p.getPlanParts().get(key);
+			if(tmp.getCurrentAmount() > 0) return tmp;
+		}
+		return null;
+	}
+
+	private boolean checkForMachineAvailability(MachineType key){
+		for(var p : currentPlans){
+			PartPlan tmp = p.getPlanParts().get(key);
+			if(tmp.getCurrentAmount() > 0) return true;
+		}
+		return false;
 	}
 }

@@ -38,12 +38,12 @@ public class MachineAgent extends Worker {
 						destination.setName("Main-Container");
 						doMove(destination);
 					}
-					if(msg.getPerformative() == ACLMessage.INFORM){
+					if(msg.getPerformative() == ACLMessage.REQUEST){
 						System.out.println(this.getAgent().getAID()+" has received work!");
 						PartPlan plan = JsonConverter.fromJsonString(msg.getContent(), PartPlan.class);
-						//Will be changed
+						//Processing time
 						try {
-							TimeUnit.SECONDS.sleep(10);
+							TimeUnit.SECONDS.sleep(2);
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
@@ -55,10 +55,12 @@ public class MachineAgent extends Worker {
 						msgToAssembler.setContent(JsonConverter.toJsonString(newPart));
 						send(msgToAssembler);
 						//Return a message to the overlord
-						ACLMessage msgToManager = new ACLMessage();
+						ACLMessage msgToManager = new ACLMessage(ACLMessage.INFORM);
 						msgToManager.addReceiver(getManagerId());
-						msgToManager.setContent("Done");
+						msgToManager.setProtocol("FTASK");
+						msgToManager.setContent(msg.getContent());
 						send(msgToManager);
+						System.out.println("Machine has responded to manager");
 					}
 				} else {
 					block();

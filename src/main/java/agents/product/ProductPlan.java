@@ -1,5 +1,7 @@
 package agents.product;
 import agents.workers.machines.MachineType;
+
+import java.util.HashMap;
 import java.util.Map;
 
 //Blueprint class
@@ -11,7 +13,7 @@ public class ProductPlan {
 
 	private int amount;
 
-	private Map<MachineType, String> planParts;
+	private Map<MachineType, PartPlan> planParts = new HashMap<>();
 
     public ProductPlan(ProductOrder order) {
         this.Id = order.getOrderId();
@@ -25,31 +27,46 @@ public class ProductPlan {
         for(String var : types) {
             switch (var.charAt(0)) {
                 case 'A':
-					planParts.put(MachineType.SurfaceFabric, var.substring(1));
+					planParts.put(MachineType.SurfaceFabric, new PartPlan(this.Id, var.substring(1), this.amount));
                     break;
                 case 'B':
-					planParts.put(MachineType.InnerFabric, var.substring(1));
+					planParts.put(MachineType.InnerFabric, new PartPlan(this.Id, var.substring(1), this.amount));
                     break;
                 case 'C':
-					planParts.put(MachineType.DetailFabric, var.substring(1));
+					planParts.put(MachineType.DetailFabric, new PartPlan(this.Id, var.substring(1), this.amount));
                     break;
                 case 'D':
-					planParts.put(MachineType.Sole, var.substring(1));
+					planParts.put(MachineType.Sole, new PartPlan(this.Id, var.substring(1), this.amount));
                     break;
                 case 'E':
-					planParts.put(MachineType.Outsole, var.substring(1));
+					planParts.put(MachineType.Outsole, new PartPlan(this.Id, var.substring(1), this.amount));
                     break;
             }
         }
     }
 
+    public void decreasePartPlanAmount(MachineType key){
+        this.planParts.get(key).decreaseCurrentAmount();
+        this.decreaseTotalAmount();
+    }
 
+    public void decreaseTotalAmount(){
+        double totalCurrent = 0;
+        double total = 0;
+        for(PartPlan part : planParts.values()){
+            total += part.getTotalAmount();
+            totalCurrent += part.getCurrentAmount();
+        }
+        if(this.amount > totalCurrent/total){
+            this.amount--;
+        }
+    }
 
-    public void updateAmount(int amount){
+    public void setAmount(int amount){
         this.amount = amount;
     }
     public int getAmount(){ return this.amount; }
     public int getPriority(){ return this.priority; }
     public int getId(){ return this.Id; }
-    public Map<MachineType, String> getPlanParts(){ return this.planParts; }
+    public Map<MachineType, PartPlan> getPlanParts(){ return this.planParts; }
 }

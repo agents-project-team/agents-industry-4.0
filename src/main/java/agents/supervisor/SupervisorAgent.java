@@ -13,7 +13,7 @@ import java.util.List;
 
 public class SupervisorAgent extends Agent {
 
-	private List<ProductOrder> receivedOrders = new ArrayList<>(List.of(new ProductOrder("TEST_ID", 1, 1), new ProductOrder("TEST_ID", 1, 1)));
+	private List<ProductOrder> receivedOrders = new ArrayList<>(List.of(new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 1, 1), new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 1, 1)));
 
 	private List<ProductOrder> sentOrders = new ArrayList<>();
 
@@ -36,8 +36,9 @@ public class SupervisorAgent extends Agent {
 
 					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 					msg.setContent(productPlan);
+					msg.setProtocol("ORDER");
 					msg.addReceiver(machineManager);
-					msg.addReceiver(assemblerManager);
+					//msg.addReceiver(assemblerManager);
 					System.out.println("Supervisor sent messages");
 					send(msg);
 
