@@ -62,6 +62,13 @@ public class ProductPlan {
         }
     }
 
+    public void decreaseAllAmounts(){
+        for(PartPlan p : planParts.values()){
+            p.decreaseCurrentAmount();
+        }
+        this.amount--;
+    }
+
     public void setAmount(int amount){
         this.amount = amount;
     }

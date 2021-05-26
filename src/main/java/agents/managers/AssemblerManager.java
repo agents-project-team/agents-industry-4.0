@@ -15,6 +15,8 @@ import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
+
+import javax.crypto.Mac;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -44,15 +46,19 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 				ACLMessage msg = receive();
 				if (msg != null) {
 					if (msg.getPerformative() == ACLMessage.INFORM) {
-						if(msg.getProtocol().equals("ORDER")){
-							//Send plans to the assemblers accordingly
+						if (msg.getProtocol().equals("ORDER")) {
+							//Send the product plan to the assemblers
 							ProductOrder order = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
 							ProductPlan plan = new ProductPlan(order);
 							sendPlanToFabricAssembler(plan);
 							sendPlanToSoleAssembler(plan);
-							sendPlanToFinalAssembler(plan);
-						}else if(msg.getProtocol().equals("FTASK")){
-
+							sendPLanToFinalAssembler(plan);
+						}
+					}else if(msg.getPerformative() == ACLMessage.UNKNOWN){
+						if(msg.getProtocol().equals("FPROD")) {
+							//Unpack product
+							//Store somewhere
+							//once list is filled send message to supervisor to let it know we finished
 						}
 					} else if (msg.getPerformative() == ACLMessage.CANCEL) {
 						AID deadMachine = msg.getSender();
@@ -172,30 +178,33 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	}
 
 	private void sendPlanToFabricAssembler(ProductPlan plan){
-		List<PartPlan> partPlans = new ArrayList<>();
-		partPlans.add(plan.getPlanParts().get(MachineType.SurfaceFabric));
-		partPlans.add(plan.getPlanParts().get(MachineType.InnerFabric));
-		partPlans.add(plan.getPlanParts().get(MachineType.DetailFabric));
 		ACLMessage msgToFabricAssembler = new ACLMessage(ACLMessage.INFORM);
+		for(MachineType key : plan.getPlanParts().keySet()){
+			if(key == MachineType.Outsole || key == MachineType.Sole){
+				plan.getPlanParts().remove(key);
+			}
+		}
+		msgToFabricAssembler.setContent(JsonConverter.toJsonString(plan));
 		msgToFabricAssembler.addReceiver(workingAssemblers.get(AssemblerType.Fabric));
-		msgToFabricAssembler.setContent(JsonConverter.toJsonString(partPlans));
 		send(msgToFabricAssembler);
 	}
 
 	private void sendPlanToSoleAssembler(ProductPlan plan){
-		List<PartPlan> partPlans = new ArrayList<>();
-		partPlans.add(plan.getPlanParts().get(MachineType.Sole));
-		partPlans.add(plan.getPlanParts().get(MachineType.Outsole));
 		ACLMessage msgToSoleAssembler = new ACLMessage(ACLMessage.INFORM);
-		msgToSoleAssembler.addReceiver(workingAssemblers.get(AssemblerType.Sole));
-		msgToSoleAssembler.setContent(JsonConverter.toJsonString(partPlans));
+		for(MachineType key : plan.getPlanParts().keySet()){
+			if(key == MachineType.DetailFabric || key == MachineType.SurfaceFabric || key == MachineType.InnerFabric){
+				plan.getPlanParts().remove(key);
+			}
+		}
+		msgToSoleAssembler.setContent(JsonConverter.toJsonString(plan));
+		msgToSoleAssembler.addReceiver(workingAssemblers.get(AssemblerType.Fabric));
 		send(msgToSoleAssembler);
 	}
 
-	private void sendPlanToFinalAssembler(ProductPlan plan){
+	private void sendPLanToFinalAssembler(ProductPlan plan){
 		ACLMessage msgToFinalAssembler = new ACLMessage(ACLMessage.INFORM);
-		msgToFinalAssembler.addReceiver(workingAssemblers.get(AssemblerType.Final));
 		msgToFinalAssembler.setContent(JsonConverter.toJsonString(plan));
+		msgToFinalAssembler.addReceiver(workingAssemblers.get(AssemblerType.Final));
 		send(msgToFinalAssembler);
 	}
 }
