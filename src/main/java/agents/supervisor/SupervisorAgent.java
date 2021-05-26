@@ -23,8 +23,6 @@ public class SupervisorAgent extends Agent {
 
     @Override
     protected void setup() {
-        System.out.println("Supervisor agent with id:" + this.getLocalName() + " has started!");
-
 		machineManager = startMachineManager();
 		assemblerManager = startAssemblerManager();
 
@@ -34,12 +32,13 @@ public class SupervisorAgent extends Agent {
 				doWait(20000);
 				if (receivedOrders.size() > 0) {
 					ProductOrder order = receivedOrders.get(0);
-					String blueprint = JsonConverter.toJsonString(order);
+					String productPlan = JsonConverter.toJsonString(order);
 
 					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-					msg.setContent(blueprint);
+					msg.setContent(productPlan);
 					msg.addReceiver(machineManager);
 					msg.addReceiver(assemblerManager);
+					System.out.println("Supervisor sent messages");
 					send(msg);
 
                     receivedOrders.remove(order);

@@ -43,6 +43,8 @@ public class ProductPlan {
         }
     }
 
+
+
     public void updateAmount(int amount){
         this.amount = amount;
     }

@@ -1,5 +1,6 @@
 package agents.managers;
 
+import agents.product.PartPlan;
 import agents.product.ProductOrder;
 import agents.product.ProductPlan;
 import agents.utils.JsonConverter;
@@ -44,21 +45,23 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 				ACLMessage msg = receive();
 				if (msg != null) {
 					if (msg.getPerformative() == ACLMessage.INFORM) {
+						System.out.print("Message Received from supervisor");
 						ProductOrder order = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
 						ProductPlan plan = new ProductPlan(order);
 						currentPlans.add(plan);
 
-						ACLMessage msgToWorkers = new ACLMessage();
 						for (AID worker : workingMachines.values()) {
-							msgToWorkers.addReceiver(worker);
+							ACLMessage msgToWorker = new ACLMessage(ACLMessage.INFORM);
+							msgToWorker.addReceiver(worker);
+							msgToWorker.setContent(JsonConverter.toJsonString(
+									new PartPlan(plan.getId(), plan.getPlanParts().get(getKey(workingMachines, worker)))));
+							send(msgToWorker);
 						}
-						msgToWorkers.setContent(JsonConverter.toJsonString(plan));
-						send(msgToWorkers);
 					} else if (msg.getContent().equals("Done")) {
 						//Handle decreasing product plan counter
 						MachineType type = getKey(workingMachines, msg.getSender());
 						ProductPlan highestPlan = getHighestPriorityPlan();
-						assignTaskToMachine(highestPlan.getPlanParts().get(type), msg.getSender());
+						assignTaskToMachine(new PartPlan(highestPlan.getId(), highestPlan.getPlanParts().get(type)), msg.getSender());
 					} else if (msg.getPerformative() == ACLMessage.CANCEL) {
 						AID deadMachine = msg.getSender();
 						MachineType key = getKey(workingMachines, deadMachine);
@@ -186,10 +189,10 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 		}
 	}
 
-	private void assignTaskToMachine(String taskString, AID machineID){
+	private void assignTaskToMachine(PartPlan plan, AID machineID){
 		ACLMessage task = new ACLMessage(ACLMessage.INFORM);
 		task.addReceiver(machineID);
-		task.setContent(taskString);
+		task.setContent(JsonConverter.toJsonString(plan));
 		send(task);
 	}
 
