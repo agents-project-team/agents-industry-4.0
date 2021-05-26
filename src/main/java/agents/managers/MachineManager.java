@@ -63,7 +63,6 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 									send(msgToWorker);
 								}
 							}
-
 							addCurrentPlan(plan);
 						} else if (msg.getProtocol().equals("FTASK")) {
 							//Decrease amount functionality

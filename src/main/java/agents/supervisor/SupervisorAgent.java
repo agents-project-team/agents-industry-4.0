@@ -41,7 +41,7 @@ public class SupervisorAgent extends Agent {
 					msg.setContent(productPlan);
 					msg.setProtocol("ORDER");
 					msg.addReceiver(machineManager);
-					//msg.addReceiver(assemblerManager);
+					msg.addReceiver(assemblerManager);
 					System.out.println("Supervisor sent messages");
 					send(msg);
 

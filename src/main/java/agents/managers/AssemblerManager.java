@@ -1,9 +1,11 @@
 package agents.managers;
 
+import agents.product.PartPlan;
 import agents.product.ProductOrder;
 import agents.product.ProductPlan;
 import agents.utils.JsonConverter;
 import agents.workers.assemblers.AssemblerType;
+import agents.workers.machines.MachineType;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.Profile;
@@ -42,16 +44,16 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 				ACLMessage msg = receive();
 				if (msg != null) {
 					if (msg.getPerformative() == ACLMessage.INFORM) {
-						ProductOrder order = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
-						ProductPlan plan = new ProductPlan(order);
+						if(msg.getProtocol().equals("ORDER")){
+							//Send plans to the assemblers accordingly
+							ProductOrder order = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
+							ProductPlan plan = new ProductPlan(order);
+							sendPlanToFabricAssembler(plan);
+							sendPlanToSoleAssembler(plan);
+							sendPlanToFinalAssembler(plan);
+						}else if(msg.getProtocol().equals("FTASK")){
 
-						ACLMessage msgToAssemblers = new ACLMessage();
-						msgToAssemblers.setPerformative(ACLMessage.INFORM);
-						msgToAssemblers.setContent(JsonConverter.toJsonString(plan));
-						for (AID assembler : workingAssemblers.values()) {
-							msgToAssemblers.addReceiver(assembler);
 						}
-						send(msgToAssemblers);
 					} else if (msg.getPerformative() == ACLMessage.CANCEL) {
 						AID deadMachine = msg.getSender();
 						AssemblerType key = getKey(workingAssemblers, deadMachine);
@@ -167,5 +169,33 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 			e.printStackTrace();
 			throw new IllegalStateException();
 		}
+	}
+
+	private void sendPlanToFabricAssembler(ProductPlan plan){
+		List<PartPlan> partPlans = new ArrayList<>();
+		partPlans.add(plan.getPlanParts().get(MachineType.SurfaceFabric));
+		partPlans.add(plan.getPlanParts().get(MachineType.InnerFabric));
+		partPlans.add(plan.getPlanParts().get(MachineType.DetailFabric));
+		ACLMessage msgToFabricAssembler = new ACLMessage(ACLMessage.INFORM);
+		msgToFabricAssembler.addReceiver(workingAssemblers.get(AssemblerType.Fabric));
+		msgToFabricAssembler.setContent(JsonConverter.toJsonString(partPlans));
+		send(msgToFabricAssembler);
+	}
+
+	private void sendPlanToSoleAssembler(ProductPlan plan){
+		List<PartPlan> partPlans = new ArrayList<>();
+		partPlans.add(plan.getPlanParts().get(MachineType.Sole));
+		partPlans.add(plan.getPlanParts().get(MachineType.Outsole));
+		ACLMessage msgToSoleAssembler = new ACLMessage(ACLMessage.INFORM);
+		msgToSoleAssembler.addReceiver(workingAssemblers.get(AssemblerType.Sole));
+		msgToSoleAssembler.setContent(JsonConverter.toJsonString(partPlans));
+		send(msgToSoleAssembler);
+	}
+
+	private void sendPlanToFinalAssembler(ProductPlan plan){
+		ACLMessage msgToFinalAssembler = new ACLMessage(ACLMessage.INFORM);
+		msgToFinalAssembler.addReceiver(workingAssemblers.get(AssemblerType.Final));
+		msgToFinalAssembler.setContent(JsonConverter.toJsonString(plan));
+		send(msgToFinalAssembler);
 	}
 }
