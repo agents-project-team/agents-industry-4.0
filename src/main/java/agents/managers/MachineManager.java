@@ -49,6 +49,8 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 				if (msg != null) {
 					if (msg.getPerformative() == ACLMessage.INFORM) {
 						if (msg.getProtocol().equals("ORDER")) {
+							System.out.println("----- " + "MachineManager distributes tasks among available machines" + " -----\n");
+
 							//Add order to queue of orders
 							ProductOrder order = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
 							ProductPlan plan = new ProductPlan(order);
@@ -66,14 +68,15 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
 							addCurrentPlan(plan);
 						} else if (msg.getProtocol().equals("FTASK")) {
-							//Decrease amount functionality
 							PartPlan responsePlan = JsonConverter.fromJsonString(msg.getContent(), PartPlan.class);
 							MachineType key = getKey(workingMachines, msg.getSender());
+
 							for (ProductPlan plan : currentPlans) {
 								if (plan.getId() == responsePlan.getId()) {
 									plan.decreasePartPlanAmount(key);
 								}
 							}
+
 							PartPlan highestPartPlan = getHighestPriorityPart(key);
 							if (highestPartPlan != null) {
 								assignTaskToMachine(highestPartPlan, msg.getSender());
@@ -82,16 +85,30 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 					} else if (msg.getPerformative() == ACLMessage.CANCEL) {
 						AID deadMachine = msg.getSender();
 						MachineType key = getKey(workingMachines, deadMachine);
+						PartPlan unfinishedPartPlan = null;
+
+						if (msg.getContent() != null) {
+							unfinishedPartPlan = JsonConverter.fromJsonString(msg.getContent(), PartPlan.class);
+						}
 
 						if (key != null) {
-							var replacementMessage = new ACLMessage();
 							if (spareMachines.get(key).isEmpty()) {
 								System.out.println("No more " + key + " machines left.");
 								return;
 							}
+
+							var replacementMessage = new ACLMessage();
 							replacementMessage.addReceiver(spareMachines.get(key).get(0));
 							replacementMessage.setPerformative(ACLMessage.PROPOSE);
 							send(replacementMessage);
+
+							System.out.println("\n----------- " + "Sending unfinished task to a backup " + key + " machine" + " -----------\n");
+
+							var unfinishedPartMessage = new ACLMessage();
+							unfinishedPartMessage.addReceiver(spareMachines.get(key).get(0));
+							unfinishedPartMessage.setContent(JsonConverter.toJsonString(unfinishedPartPlan));
+							unfinishedPartMessage.setPerformative(ACLMessage.REQUEST);
+							send(unfinishedPartMessage);
 
 							workingMachines.computeIfPresent(key, (e, a) -> spareMachines.get(key).get(0));
 							spareMachines.get(key).remove(0);
@@ -206,7 +223,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 		}
 	}
 
-	private void assignTaskToMachine(PartPlan plan, AID machineID){
+	private void assignTaskToMachine(PartPlan plan, AID machineID) {
 		ACLMessage task = new ACLMessage(ACLMessage.REQUEST);
 		task.addReceiver(machineID);
 		task.setContent(JsonConverter.toJsonString(plan));

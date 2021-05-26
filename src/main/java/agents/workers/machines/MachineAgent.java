@@ -9,7 +9,7 @@ import jade.core.ContainerID;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 
-public class MachineAgent extends Worker {
+public class MachineAgent extends Worker<PartPlan> {
 
 	private String customState;
 
@@ -21,6 +21,8 @@ public class MachineAgent extends Worker {
 
 	private int seconds;
 
+	private PartPlan currentPlan;
+
     @Override
     protected void setup() {
         super.setup();
@@ -30,23 +32,25 @@ public class MachineAgent extends Worker {
 				ACLMessage msg = receive();
 				if (msg != null) {
 					if (msg.getPerformative() == ACLMessage.PROPOSE) {
-						System.out.println(getLocalName() + " replaces broken machine.");
+						System.out.println("\n---------------- " + getLocalName() + " replaces broken machine. ----------------\n");
 						ContainerID destination = new ContainerID();
 						destination.setName("Main-Container");
 						doMove(destination);
 					} else if (msg.getPerformative() == ACLMessage.REQUEST) {
-						System.out.println(this.getAgent().getAID() + " has received work!");
+						System.out.println(getLocalName() + " machine has received a task!");
 						PartPlan plan = JsonConverter.fromJsonString(msg.getContent(), PartPlan.class);
-						//Processing time
+						currentPlan = plan;
 
+						//Processing time
 						doWait(2000);
 
-						//Part is created
 						ProductPart newPart = new ProductPart(plan.getPartType());
+
 						//Part is sent
 						ACLMessage msgToAssembler = new ACLMessage(ACLMessage.INFORM);
 						msgToAssembler.addReceiver(assemblerId);
 						msgToAssembler.setContent(JsonConverter.toJsonString(newPart));
+
 						send(msgToAssembler);
 						//Return a message to the overlord
 						ACLMessage msgToManager = new ACLMessage(ACLMessage.INFORM);
@@ -54,7 +58,7 @@ public class MachineAgent extends Worker {
 						msgToManager.setProtocol("FTASK");
 						msgToManager.setContent(msg.getContent());
 						send(msgToManager);
-						System.out.println("Machine has responded to manager");
+						System.out.println(getLocalName() + " machine has finished its work.");
 					}
 				} else {
 					block();
@@ -62,4 +66,9 @@ public class MachineAgent extends Worker {
             }
 		});
     }
+
+	@Override
+	public PartPlan getUnfinishedTask() {
+		return currentPlan;
+	}
 }
