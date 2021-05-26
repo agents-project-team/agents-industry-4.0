@@ -13,7 +13,10 @@ import java.util.List;
 
 public class SupervisorAgent extends Agent {
 
-	private List<ProductOrder> receivedOrders = new ArrayList<>(List.of(new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 1, 1), new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 1, 1)));
+	private List<ProductOrder> receivedOrders = new ArrayList<>(
+			List.of(new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 3, 3),
+					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 4, 4))
+	);
 
 	private List<ProductOrder> sentOrders = new ArrayList<>();
 
@@ -29,7 +32,7 @@ public class SupervisorAgent extends Agent {
         addBehaviour(new TickerBehaviour(this, 2000) {
             @Override
             protected void onTick() {
-				doWait(20000);
+				doWait(2000);
 				if (receivedOrders.size() > 0) {
 					ProductOrder order = receivedOrders.get(0);
 					String productPlan = JsonConverter.toJsonString(order);

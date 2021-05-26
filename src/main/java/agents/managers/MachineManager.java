@@ -15,6 +15,7 @@ import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,13 +48,13 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 				ACLMessage msg = receive();
 				if (msg != null) {
 					if (msg.getPerformative() == ACLMessage.INFORM) {
-						if(msg.getProtocol().equals("ORDER")){
+						if (msg.getProtocol().equals("ORDER")) {
 							//Add order to queue of orders
 							ProductOrder order = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
 							ProductPlan plan = new ProductPlan(order);
 							//Check if contains orders, else send more
 							for (AID worker : workingMachines.values()) {
-								if(checkForMachineAvailability(getKey(workingMachines, worker))) {
+								if (checkForMachineAvailability(getKey(workingMachines, worker))) {
 									ACLMessage msgToWorker = new ACLMessage(ACLMessage.REQUEST);
 									msgToWorker.addReceiver(worker);
 									PartPlan partPlanToMachine = new PartPlan(plan.getPlanParts().get(getKey(workingMachines, worker)));
@@ -62,17 +63,19 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 									send(msgToWorker);
 								}
 							}
-							currentPlans.add(plan);
-						}
-						if(msg.getProtocol().equals("FTASK")){
+
+							addCurrentPlan(plan);
+						} else if (msg.getProtocol().equals("FTASK")) {
 							//Decrease amount functionality
 							PartPlan responsePlan = JsonConverter.fromJsonString(msg.getContent(), PartPlan.class);
 							MachineType key = getKey(workingMachines, msg.getSender());
-							for(ProductPlan plan : currentPlans){
-								if(plan.getId() == responsePlan.getId()) plan.decreasePartPlanAmount(key);
+							for (ProductPlan plan : currentPlans) {
+								if (plan.getId() == responsePlan.getId()) {
+									plan.decreasePartPlanAmount(key);
+								}
 							}
 							PartPlan highestPartPlan = getHighestPriorityPart(key);
-							if(highestPartPlan != null){
+							if (highestPartPlan != null) {
 								assignTaskToMachine(highestPartPlan, msg.getSender());
 							}
 						}
@@ -217,7 +220,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 		return null;
 	}
 
-	private ProductPlan getHighestPriorityPlan(){
+	private ProductPlan getHighestPriorityPlan() {
 		ProductPlan plan = null;
 		int maxPriority = 0;
 		for(var p : currentPlans){
@@ -230,19 +233,32 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 	}
 
 	private PartPlan getHighestPriorityPart(MachineType key){
-		//Sorted list
-		for(var p : currentPlans){
-			PartPlan tmp = p.getPlanParts().get(key);
-			if(tmp.getCurrentAmount() > 0) return tmp;
-		}
-		return null;
+		return currentPlans.stream()
+				.map(plan -> plan.getPlanParts().get(key))
+				.filter(part -> part.getCurrentAmount() > 0)
+				.findFirst()
+				.orElse(null);
+
+		//		//Sorted list
+		//		for(var p : currentPlans) {
+		//			PartPlan tmp = p.getPlanParts().get(key);
+		//			if(tmp.getCurrentAmount() > 0) return tmp;
+		//		}
+		//		return null;
+	}
+
+	private void addCurrentPlan(ProductPlan plan) {
+		currentPlans.add(plan);
+		currentPlans.sort(Comparator.comparing(ProductPlan::getPriority, Comparator.reverseOrder()));
 	}
 
 	private boolean checkForMachineAvailability(MachineType key){
 		for(var p : currentPlans){
 			PartPlan tmp = p.getPlanParts().get(key);
-			if(tmp.getCurrentAmount() > 0) return true;
+			if (tmp.getCurrentAmount() > 0) {
+				return false;
+			}
 		}
-		return false;
+		return true;
 	}
 }

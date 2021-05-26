@@ -2,15 +2,12 @@ package agents.workers.machines;
 
 import agents.product.PartPlan;
 import agents.product.ProductPart;
-import agents.product.ProductPlan;
 import agents.utils.JsonConverter;
 import agents.workers.Worker;
 import jade.core.AID;
 import jade.core.ContainerID;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
-
-import java.util.concurrent.TimeUnit;
 
 public class MachineAgent extends Worker {
 
@@ -37,16 +34,13 @@ public class MachineAgent extends Worker {
 						ContainerID destination = new ContainerID();
 						destination.setName("Main-Container");
 						doMove(destination);
-					}
-					if(msg.getPerformative() == ACLMessage.REQUEST){
-						System.out.println(this.getAgent().getAID()+" has received work!");
+					} else if (msg.getPerformative() == ACLMessage.REQUEST) {
+						System.out.println(this.getAgent().getAID() + " has received work!");
 						PartPlan plan = JsonConverter.fromJsonString(msg.getContent(), PartPlan.class);
 						//Processing time
-						try {
-							TimeUnit.SECONDS.sleep(2);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
+
+						doWait(2000);
+
 						//Part is created
 						ProductPart newPart = new ProductPart(plan.getPartType());
 						//Part is sent

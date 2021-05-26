@@ -2,7 +2,8 @@ package agents.product;
 
 //Part plan
 public class PartPlan {
-    private int Id;
+
+	private int Id;
     private int totalAmount;
     private int currentAmount;
     private String partType;
