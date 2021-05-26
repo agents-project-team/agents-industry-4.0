@@ -29,11 +29,14 @@ public class SupervisorAgent extends Agent {
 		machineManager = startMachineManager();
 		assemblerManager = startAssemblerManager();
 
+		doWait(2000);
+
         addBehaviour(new TickerBehaviour(this, 2000) {
             @Override
             protected void onTick() {
-				doWait(2000);
 				if (receivedOrders.size() > 0) {
+					System.out.println("\n============ " + "Supervisor sends product plan to managers" + " ============\n");
+
 					ProductOrder order = receivedOrders.get(0);
 					String productPlan = JsonConverter.toJsonString(order);
 
@@ -45,7 +48,7 @@ public class SupervisorAgent extends Agent {
 					System.out.println("Supervisor sent messages");
 					send(msg);
 
-                    receivedOrders.remove(order);
+					receivedOrders.remove(order);
                     sentOrders.add(order);
                 }
             }

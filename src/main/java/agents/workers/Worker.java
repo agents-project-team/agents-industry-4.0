@@ -1,5 +1,6 @@
 package agents.workers;
 
+import agents.utils.JsonConverter;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.TickerBehaviour;
@@ -7,9 +8,9 @@ import jade.lang.acl.ACLMessage;
 import jade.wrapper.ControllerException;
 import java.util.Random;
 
-public abstract class Worker extends Agent {
+public abstract class Worker<T> extends Agent {
 
-	private final static int FAILURE_RATE = 15; // %
+	private final static int FAILURE_RATE = 7; // %
 
 	private AID managerId;
 
@@ -30,9 +31,12 @@ public abstract class Worker extends Agent {
 					try {
 						String name = getAgent().getContainerController().getContainerName();
 						if (!name.contains("Backup")) {
+							System.out.println("\n================ " + getLocalName() + (getLocalName().contains("Assembler") ? "" :
+									"Machine") + " breaks... ================\n");
+
 							var iAmDeadMessage = new ACLMessage();
 							iAmDeadMessage.addReceiver(managerId);
-							iAmDeadMessage.setContent("I am dead " + getLocalName());
+							iAmDeadMessage.setContent(JsonConverter.toJsonString(getUnfinishedTask()));
 							iAmDeadMessage.setPerformative(ACLMessage.CANCEL);
 							send(iAmDeadMessage);
 
@@ -44,6 +48,10 @@ public abstract class Worker extends Agent {
 			}
 		});
     }
+
+	public T getUnfinishedTask() {
+		return null;
+	}
 
 	public AID getManagerId() {
 		return managerId;
