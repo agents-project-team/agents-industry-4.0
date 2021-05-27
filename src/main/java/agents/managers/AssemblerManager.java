@@ -99,7 +99,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 							spareAssemblers.get(key).remove(0);
 						}
 					} else if (msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
-						AID agentID = JsonConverter.fromJsonString(msg.getContent(), AID.class);
+						AID agentID = new AID(msg.getContent(), AID.ISGUID);
 						addAgentToRegistry(agentID, Objects.requireNonNull(getKey(workingAssemblers, agentID)));
 					}
 				} else {

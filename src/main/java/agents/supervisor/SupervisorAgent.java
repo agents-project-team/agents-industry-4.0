@@ -2,10 +2,8 @@ package agents.supervisor;
 
 import agents.product.ProductOrder;
 import agents.utils.JsonConverter;
-import agents.workers.machines.MachineType;
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
@@ -51,7 +49,6 @@ public class SupervisorAgent extends Agent {
 					msgToManagers.setProtocol("ORDER");
 					msgToManagers.addReceiver(machineManager);
 					msgToManagers.addReceiver(assemblerManager);
-					System.out.println("Supervisor sent messages");
 					send(msgToManagers);
 
 					receivedOrders.remove(order);
@@ -124,7 +121,7 @@ public class SupervisorAgent extends Agent {
 	public List<ProductOrder> getSentOrders(){ return sentOrders; }
 
 	private void printFinishedOrders(){
-    	System.out.println("Orders that have been completed");
+		System.out.println("\nOrders that have been completed: ");
     	for(ProductOrder order : finishedOrders){
 			System.out.println("=============================================");
 			System.out.println("Order: "+order.getOrderId());
@@ -133,5 +130,6 @@ public class SupervisorAgent extends Agent {
 			System.out.println("Order Priority: "+order.getOrderPriority());
 			System.out.println("=============================================");
 		}
+		System.out.println();
 	}
 }

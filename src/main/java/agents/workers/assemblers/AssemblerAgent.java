@@ -6,7 +6,6 @@ import agents.product.ProductPart;
 import agents.product.ProductPlan;
 import agents.utils.JsonConverter;
 import agents.workers.Worker;
-import agents.workers.machines.MachineType;
 import jade.core.AID;
 import jade.core.ContainerID;
 import jade.core.behaviours.CyclicBehaviour;
@@ -15,8 +14,11 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class AssemblerAgent extends Worker<Object> {
 
@@ -56,7 +58,7 @@ public class AssemblerAgent extends Worker<Object> {
 						}
 					}else if (msg.getPerformative() == ACLMessage.PROPOSE) {
 						ACLMessage msgToManager = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-						msgToManager.setContent(JsonConverter.toJsonString(getAID()));
+						msgToManager.setContent(getAID().getName());
 						msgToManager.addReceiver(getManagerId());
 						send(msgToManager);
 						System.out.println(getLocalName() + " replaces broken machine.");

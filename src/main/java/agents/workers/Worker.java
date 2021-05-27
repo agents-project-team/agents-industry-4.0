@@ -5,13 +5,14 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
+import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.ControllerException;
 import java.util.Random;
 
 public abstract class Worker<T> extends Agent {
 
-	private final static int FAILURE_RATE = 0; // %
+	private final static int FAILURE_RATE = 15; // %
 
 	private AID managerId;
 
@@ -44,6 +45,13 @@ public abstract class Worker<T> extends Agent {
 							iAmDeadMessage.setPerformative(ACLMessage.CANCEL);
 							send(iAmDeadMessage);
 
+							try {
+								if (getLocalName().contains("Assembler")) {
+									DFService.deregister(getAgent());
+								}
+							} catch (FIPAException e) {
+							}
+
 							doDelete();
 						}
 					} catch (ControllerException ignored) {
@@ -53,12 +61,12 @@ public abstract class Worker<T> extends Agent {
 		});
     }
 
-    @Override
-	protected void takeDown(){
-    	try{
-			DFService.deregister(this);
-		}catch(Exception e) { }
-	}
+	//    @Override
+	//	protected void takeDown(){
+	//    	try{
+	//
+	//		}catch(Exception e) { }
+	//	}
 
 	public T getUnfinishedTask() {
 		return null;
