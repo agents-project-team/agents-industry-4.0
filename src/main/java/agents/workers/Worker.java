@@ -11,13 +11,16 @@ import java.util.Random;
 
 public abstract class Worker<T> extends Agent {
 
-	private final static int FAILURE_RATE = 7; // %
+	private final static int FAILURE_RATE = 0; // %
 
 	private AID managerId;
+
+	private String workerType;
 
     @Override
     protected void setup() {
 		this.managerId = (AID) getArguments()[0];
+		this.workerType = (String) getArguments()[1];
 		setShuttingDownBehaviour();
     }
 
@@ -63,5 +66,9 @@ public abstract class Worker<T> extends Agent {
 
 	public AID getManagerId() {
 		return managerId;
+	}
+
+	public String getWorkerType(){
+    	return workerType;
 	}
 }

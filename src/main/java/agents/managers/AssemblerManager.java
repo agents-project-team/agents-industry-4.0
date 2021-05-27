@@ -59,14 +59,15 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 						if (msg.getProtocol().equals("ORDER")) {
 							//Send the product plan to the assemblers
 							ProductOrder order = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
-							ProductPlan plan = new ProductPlan(order);
 							currentOrders.add(order);
+							ProductPlan plan = new ProductPlan(order);
 							sendPlanToFabricAssembler(plan);
 							sendPlanToSoleAssembler(plan);
 							sendPLanToFinalAssembler(plan);
 						}
 					} else if (msg.getPerformative() == ACLMessage.UNKNOWN) {
 						if (msg.getProtocol().equals("FPROD")) {
+							System.out.println(getLocalName()+" has received product");
 							//Unpack product
 							Product product = JsonConverter.fromJsonString(msg.getContent(), Product.class);
 							//Store somewhere
@@ -109,7 +110,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	}
 
 	private void setupSupervisor() {
-		supervisor = null;
+		supervisor = (AID) getArguments()[0];
 	}
 
 	private void setupWorkingAssemblers() {
@@ -181,7 +182,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	private AID startAssemblerAgent(AssemblerType type) {
 		ContainerController cc = getContainerController();
 		try {
-			AgentController ac = cc.createNewAgent("Assembler" + type.name(), "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID()});
+			AgentController ac = cc.createNewAgent("Assembler" + type.name(), "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID(), type.toString()});
 			ac.start();
 			AID agentID = new AID(ac.getName(), AID.ISGUID);
 			addAgentToRegistry(agentID, type);
@@ -193,7 +194,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 
 	private AID startBackupAssemblerAgent(String name, ContainerController cc) {
 		try {
-			AgentController ac = cc.createNewAgent("AssemblerBackup" + name, "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID()});
+			AgentController ac = cc.createNewAgent("AssemblerBackup" + name, "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID(), "Backup"});
 			ac.start();
 			return new AID(ac.getName(), AID.ISGUID);
 		} catch (Exception e) {
@@ -203,28 +204,30 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	}
 
 	private void sendPlanToFabricAssembler(ProductPlan plan) {
-		ACLMessage msgToFabricAssembler = new ACLMessage(ACLMessage.INFORM);
-		Set<MachineType> machineTypes = new HashSet<>(plan.getPlanParts().keySet());
+		ProductPlan fabricPlan = new ProductPlan(plan);
+		Set<MachineType> machineTypes = new HashSet<>(fabricPlan.getPlanParts().keySet());
 		for (MachineType key : machineTypes) {
 			if (key == MachineType.Outsole || key == MachineType.Sole) {
-				plan.getPlanParts().remove(key);
+				fabricPlan.getPlanParts().remove(key);
 			}
 		}
-		msgToFabricAssembler.setContent(JsonConverter.toJsonString(plan));
+		ACLMessage msgToFabricAssembler = new ACLMessage(ACLMessage.INFORM);
+		msgToFabricAssembler.setContent(JsonConverter.toJsonString(fabricPlan));
 		msgToFabricAssembler.addReceiver(workingAssemblers.get(AssemblerType.Fabric));
 		send(msgToFabricAssembler);
 	}
 
 	private void sendPlanToSoleAssembler(ProductPlan plan) {
-		ACLMessage msgToSoleAssembler = new ACLMessage(ACLMessage.INFORM);
-		Set<MachineType> machineTypes = new HashSet<>(plan.getPlanParts().keySet());
+		ProductPlan solePlan = new ProductPlan(plan);
+		Set<MachineType> machineTypes = new HashSet<>(solePlan.getPlanParts().keySet());
 		for (MachineType key : machineTypes) {
 			if (key == MachineType.DetailFabric || key == MachineType.SurfaceFabric || key == MachineType.InnerFabric) {
-				plan.getPlanParts().remove(key);
+				solePlan.getPlanParts().remove(key);
 			}
 		}
-		msgToSoleAssembler.setContent(JsonConverter.toJsonString(plan));
-		msgToSoleAssembler.addReceiver(workingAssemblers.get(AssemblerType.Fabric));
+		ACLMessage msgToSoleAssembler = new ACLMessage(ACLMessage.INFORM);
+		msgToSoleAssembler.setContent(JsonConverter.toJsonString(solePlan));
+		msgToSoleAssembler.addReceiver(workingAssemblers.get(AssemblerType.Sole));
 		send(msgToSoleAssembler);
 	}
 
@@ -243,6 +246,9 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 				if (orderProduct.get().getProductAmount() >= order.getProductAmount()) {
 					//Get Rid of products
 					orderProduct.get().increaseAmount(-1 * order.getProductAmount());
+					if(orderProduct.get().getProductAmount() == 0){
+						finishedProducts.remove(order);
+					}
 					//Send message to supervisor
 					notifyFinishedTask(order);
 				}
@@ -256,13 +262,14 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		msgToSupervisor.addReceiver(getSupervisor());
 		msgToSupervisor.setContent(JsonConverter.toJsonString(order));
 		send(msgToSupervisor);
+		System.out.println(getLocalName()+" has sent a message to supervisor");
 	}
 
 	private void addAgentToRegistry(AID agent, AssemblerType type) {
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(agent);
 		ServiceDescription sd = new ServiceDescription();
-		sd.setName(agent.getLocalName());
+		sd.setName(type.toString());
 		sd.setType(type.toString());
 		dfd.addServices(sd);
 		try {

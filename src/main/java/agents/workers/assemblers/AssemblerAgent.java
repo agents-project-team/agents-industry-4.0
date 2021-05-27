@@ -6,6 +6,7 @@ import agents.product.ProductPart;
 import agents.product.ProductPlan;
 import agents.utils.JsonConverter;
 import agents.workers.Worker;
+import agents.workers.machines.MachineType;
 import jade.core.AID;
 import jade.core.ContainerID;
 import jade.core.behaviours.CyclicBehaviour;
@@ -14,9 +15,8 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+
+import java.util.*;
 
 public class AssemblerAgent extends Worker<Object> {
 
@@ -26,9 +26,9 @@ public class AssemblerAgent extends Worker<Object> {
 
 	private AID nextAssembler;
 
-	List<ProductPlan> currentPlans = new ArrayList<>();
+	private final List<ProductPlan> currentPlans = new ArrayList<>();
 
-	private List<ProductPart> storedParts = new ArrayList<>();
+	private final List<ProductPart> storedParts = new ArrayList<>();
 
     @Override
     public void setup() {
@@ -44,13 +44,14 @@ public class AssemblerAgent extends Worker<Object> {
 				if (msg != null) {
 					if(msg.getPerformative() == ACLMessage.INFORM){
 						//Receive Plans from manager
+						System.out.println(getLocalName()+" has received the plan!");
 						currentPlans.add(JsonConverter.fromJsonString(msg.getContent(), ProductPlan.class));
 						currentPlans.sort(Comparator.comparing(ProductPlan::getPriority, Comparator.reverseOrder()));
 					}else if(msg.getPerformative() == ACLMessage.UNKNOWN){
 						if(msg.getProtocol().equals("SPART")){
 							//Receive parts
-							ArrayList<ProductPart> receivedParts = JsonConverter.fromJsonString(msg.getContent(), ArrayList.class);
-							storedParts.addAll(receivedParts);
+							ProductPart receivedPart = JsonConverter.fromJsonString(msg.getContent(), ProductPart.class);
+							storedParts.add(receivedPart);
 							assembleParts();
 						}
 					}else if (msg.getPerformative() == ACLMessage.PROPOSE) {
@@ -74,6 +75,7 @@ public class AssemblerAgent extends Worker<Object> {
     	for(ProductPlan plan : currentPlans){
     		List<ProductPart> parts = getStorageParts(plan);
     		if(parts.size() > 0){
+				System.out.println(getLocalName()+" is assembling part");
 
     			doWait(2000);
 
@@ -84,24 +86,27 @@ public class AssemblerAgent extends Worker<Object> {
 	}
 
 	private List<ProductPart> getStorageParts(ProductPlan plan){
-    	List<ProductPart> parts = new ArrayList<>();
-    	for(PartPlan partPlan : plan.getPlanParts().values()){
-    		for(ProductPart part : storedParts){
+    	List<ProductPart> partsToSend = new ArrayList<>();
+    	Set<ProductPart> partsStored = new HashSet<>(storedParts);
+    	Set<PartPlan> planProductParts = new HashSet<>(plan.getPlanParts().values());
+    	for(PartPlan partPlan : planProductParts){
+    		for(ProductPart part : partsStored){
     			if(partPlan.getPartType().equals(part.getType())){
-    				parts.add(part);
-    				storedParts.remove(part);
+					partsToSend.add(part);
+					storedParts.remove(part);
     				break;
 				}
 			}
 		}
-    	if(!(parts.size() == plan.getPlanParts().values().size())){
-			storedParts.addAll(parts);
+    	if(!(partsToSend.size() == plan.getPlanParts().values().size())){
+			storedParts.addAll(partsToSend);
+			partsToSend.removeAll(partsToSend);
 		}
-		return parts;
+		return partsToSend;
 	}
 
 	private void sendParts(List<ProductPart> parts){
-    	if(assemblerType == AssemblerType.Final){
+    	if(getWorkerType().equals(AssemblerType.Final.toString())){
 			//Create full product
 			if(parts.size() > 0){
 				Product product = new Product(parts.get(0).getPartId(), 1, parts);
@@ -112,17 +117,20 @@ public class AssemblerAgent extends Worker<Object> {
 				send(msgToAssemblerManager);
 			}
 		}else{
-			ACLMessage partsToFinalAssembler = new ACLMessage(ACLMessage.UNKNOWN);
-			partsToFinalAssembler.setProtocol("SPART");
-			partsToFinalAssembler.setContent(JsonConverter.toJsonString(parts));
 			AID receiverAID = getReceiverAID(AssemblerType.Final);
-			partsToFinalAssembler.addReceiver(receiverAID);
-			send(partsToFinalAssembler);
+			for(ProductPart p : parts){
+				ACLMessage partsToFinalAssembler = new ACLMessage(ACLMessage.UNKNOWN);
+				partsToFinalAssembler.setProtocol("SPART");
+				partsToFinalAssembler.setContent(JsonConverter.toJsonString(p));
+				partsToFinalAssembler.addReceiver(receiverAID);
+				send(partsToFinalAssembler);
+			}
 		}
 	}
 
 	private AID getReceiverAID(AssemblerType type){
 		ServiceDescription sd = new ServiceDescription();
+		sd.setName(type.toString());
 		sd.setType(type.toString());
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.addServices(sd);

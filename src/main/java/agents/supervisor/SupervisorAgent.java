@@ -12,6 +12,7 @@ import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class SupervisorAgent extends Agent {
 
@@ -58,12 +59,16 @@ public class SupervisorAgent extends Agent {
                 }
 				if(msg!=null){
 					if(msg.getPerformative() == ACLMessage.INFORM && msg.getProtocol().equals("FORDER")){
+						System.out.println(getLocalName()+" has received a finished order");
 						ProductOrder finishedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
-						if(sentOrders.contains(finishedOrder)){
-							sentOrders.remove(finishedOrder);
-							finishedOrders.add(finishedOrder);
+						Optional<ProductOrder> sentOrder = sentOrders.stream()
+								.filter(ord -> ord.getOrderId() == finishedOrder.getOrderId())
+								.findFirst();
+						if(sentOrder.isPresent()){
+							sentOrders.remove(sentOrder.get());
+							finishedOrders.add(sentOrder.get());
+							printFinishedOrders();
 						}
-
 					}
 				}
             }
@@ -117,4 +122,16 @@ public class SupervisorAgent extends Agent {
 	public List<ProductOrder> getReceivedOrders(){ return receivedOrders; }
 
 	public List<ProductOrder> getSentOrders(){ return sentOrders; }
+
+	private void printFinishedOrders(){
+    	System.out.println("Orders that have been completed");
+    	for(ProductOrder order : finishedOrders){
+			System.out.println("=============================================");
+			System.out.println("Order: "+order.getOrderId());
+			System.out.println("Product ID: "+order.getProductId());
+			System.out.println("Product Amount: "+order.getProductAmount());
+			System.out.println("Order Priority: "+order.getOrderPriority());
+			System.out.println("=============================================");
+		}
+	}
 }
