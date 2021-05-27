@@ -1,6 +1,5 @@
 package agents.managers;
 
-import agents.product.PartPlan;
 import agents.product.Product;
 import agents.product.ProductOrder;
 import agents.product.ProductPlan;
@@ -20,7 +19,15 @@ import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 
 public class AssemblerManager extends Agent implements Manager<AID, AssemblerType> {
 
@@ -90,7 +97,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 							workingAssemblers.computeIfPresent(key, (e, a) -> spareAssemblers.get(key).get(0));
 							spareAssemblers.get(key).remove(0);
 						}
-					} else if(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL){
+					} else if (msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
 						AID agentID = JsonConverter.fromJsonString(msg.getContent(), AID.class);
 						addAgentToRegistry(agentID, Objects.requireNonNull(getKey(workingAssemblers, agentID)));
 					}
@@ -195,10 +202,11 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		}
 	}
 
-	private void sendPlanToFabricAssembler(ProductPlan plan){
+	private void sendPlanToFabricAssembler(ProductPlan plan) {
 		ACLMessage msgToFabricAssembler = new ACLMessage(ACLMessage.INFORM);
-		for(MachineType key : plan.getPlanParts().keySet()){
-			if(key == MachineType.Outsole || key == MachineType.Sole){
+		Set<MachineType> machineTypes = new HashSet<>(plan.getPlanParts().keySet());
+		for (MachineType key : machineTypes) {
+			if (key == MachineType.Outsole || key == MachineType.Sole) {
 				plan.getPlanParts().remove(key);
 			}
 		}
@@ -207,10 +215,11 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		send(msgToFabricAssembler);
 	}
 
-	private void sendPlanToSoleAssembler(ProductPlan plan){
+	private void sendPlanToSoleAssembler(ProductPlan plan) {
 		ACLMessage msgToSoleAssembler = new ACLMessage(ACLMessage.INFORM);
-		for(MachineType key : plan.getPlanParts().keySet()){
-			if(key == MachineType.DetailFabric || key == MachineType.SurfaceFabric || key == MachineType.InnerFabric){
+		Set<MachineType> machineTypes = new HashSet<>(plan.getPlanParts().keySet());
+		for (MachineType key : machineTypes) {
+			if (key == MachineType.DetailFabric || key == MachineType.SurfaceFabric || key == MachineType.InnerFabric) {
 				plan.getPlanParts().remove(key);
 			}
 		}
@@ -219,21 +228,21 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		send(msgToSoleAssembler);
 	}
 
-	private void sendPLanToFinalAssembler(ProductPlan plan){
+	private void sendPLanToFinalAssembler(ProductPlan plan) {
 		ACLMessage msgToFinalAssembler = new ACLMessage(ACLMessage.INFORM);
 		msgToFinalAssembler.setContent(JsonConverter.toJsonString(plan));
 		msgToFinalAssembler.addReceiver(workingAssemblers.get(AssemblerType.Final));
 		send(msgToFinalAssembler);
 	}
 
-	private void finishedProductsOperation(){
-		for(ProductOrder order : currentOrders){
+	private void finishedProductsOperation() {
+		for (ProductOrder order : currentOrders) {
 			Optional<Product> orderProduct = finishedProducts.stream()
 					.filter(p -> p.getProductId() == order.getOrderId()).findFirst();
-			if(orderProduct.isPresent()){
-				if(orderProduct.get().getProductAmount() >= order.getProductAmount()){
+			if (orderProduct.isPresent()) {
+				if (orderProduct.get().getProductAmount() >= order.getProductAmount()) {
 					//Get Rid of products
-					orderProduct.get().increaseAmount(-1*order.getProductAmount());
+					orderProduct.get().increaseAmount(-1 * order.getProductAmount());
 					//Send message to supervisor
 					notifyFinishedTask(order);
 				}
@@ -241,7 +250,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		}
 	}
 
-	private void notifyFinishedTask(ProductOrder order){
+	private void notifyFinishedTask(ProductOrder order) {
 		ACLMessage msgToSupervisor = new ACLMessage(ACLMessage.INFORM);
 		msgToSupervisor.setProtocol("FORDER");
 		msgToSupervisor.addReceiver(getSupervisor());
@@ -249,15 +258,16 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		send(msgToSupervisor);
 	}
 
-	private void addAgentToRegistry(AID agent, AssemblerType type){
+	private void addAgentToRegistry(AID agent, AssemblerType type) {
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(agent);
 		ServiceDescription sd = new ServiceDescription();
+		sd.setName(agent.getLocalName());
 		sd.setType(type.toString());
 		dfd.addServices(sd);
-		try{
+		try {
 			DFService.register(this, dfd);
-		}catch(FIPAException fe){
+		} catch (FIPAException fe) {
 			fe.printStackTrace();
 		}
 	}
