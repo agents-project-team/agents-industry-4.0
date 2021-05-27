@@ -66,6 +66,11 @@ public class SupervisorAgent extends Agent {
 							finishedOrders.add(sentOrder.get());
 							printFinishedOrders();
 						}
+						if(sentOrders.size() == 0){
+							System.out.println("======================================================");
+							System.out.println("All orders have been completed");
+							System.out.println("======================================================");
+						}
 					}
 				}
             }

@@ -124,25 +124,25 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 
 		getSpareMachines().put(AssemblerType.Sole, new ArrayList<>(
 				Arrays.asList(
-						startBackupAssemblerAgent(AssemblerType.Sole + "1", cc),
-						startBackupAssemblerAgent(AssemblerType.Sole + "2", cc),
-						startBackupAssemblerAgent(AssemblerType.Sole + "3", cc)
+						startBackupAssemblerAgent(AssemblerType.Sole + "1", cc, AssemblerType.Sole),
+						startBackupAssemblerAgent(AssemblerType.Sole + "2", cc, AssemblerType.Sole),
+						startBackupAssemblerAgent(AssemblerType.Sole + "3", cc, AssemblerType.Sole)
 				)
 		));
 
 		getSpareMachines().put(AssemblerType.Fabric, new ArrayList<>(
 				Arrays.asList(
-						startBackupAssemblerAgent(AssemblerType.Fabric + "1", cc),
-						startBackupAssemblerAgent(AssemblerType.Fabric + "2", cc),
-						startBackupAssemblerAgent(AssemblerType.Fabric + "3", cc)
+						startBackupAssemblerAgent(AssemblerType.Fabric + "1", cc, AssemblerType.Fabric),
+						startBackupAssemblerAgent(AssemblerType.Fabric + "2", cc, AssemblerType.Fabric),
+						startBackupAssemblerAgent(AssemblerType.Fabric + "3", cc,  AssemblerType.Fabric)
 				)
 		));
 
 		getSpareMachines().put(AssemblerType.Final, new ArrayList<>(
 				Arrays.asList(
-						startBackupAssemblerAgent(AssemblerType.Final + "1", cc),
-						startBackupAssemblerAgent(AssemblerType.Final + "2", cc),
-						startBackupAssemblerAgent(AssemblerType.Final + "3", cc)
+						startBackupAssemblerAgent(AssemblerType.Final + "1", cc, AssemblerType.Final),
+						startBackupAssemblerAgent(AssemblerType.Final + "2", cc, AssemblerType.Final),
+						startBackupAssemblerAgent(AssemblerType.Final + "3", cc, AssemblerType.Final)
 				)
 		));
 	}
@@ -192,9 +192,9 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		}
 	}
 
-	private AID startBackupAssemblerAgent(String name, ContainerController cc) {
+	private AID startBackupAssemblerAgent(String name, ContainerController cc, AssemblerType type) {
 		try {
-			AgentController ac = cc.createNewAgent("AssemblerBackup" + name, "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID(), "Backup"});
+			AgentController ac = cc.createNewAgent("AssemblerBackup" + name, "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID(), type.toString()});
 			ac.start();
 			return new AID(ac.getName(), AID.ISGUID);
 		} catch (Exception e) {
