@@ -99,8 +99,8 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 							spareAssemblers.get(key).remove(0);
 						}
 					} else if (msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
-						AID agentID = new AID(msg.getContent(), AID.ISGUID);
-						addAgentToRegistry(agentID, Objects.requireNonNull(getKey(workingAssemblers, agentID)));
+						AID agentID = new AID(msg.getContent(), AID.ISLOCALNAME);
+						addAgentToRegistry(agentID, Objects.requireNonNull(getAssemblerKey(workingAssemblers, agentID)));
 					}
 				} else {
 					block();
@@ -173,6 +173,15 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	private static <K, V> K getKey(Map<K, V> map, V value) {
 		for (K key : map.keySet()) {
 			if (value.equals(map.get(key))) {
+				return key;
+			}
+		}
+		return null;
+	}
+
+	private static AssemblerType getAssemblerKey(Map<AssemblerType, AID> map, AID value) {
+		for (AssemblerType key : map.keySet()) {
+			if (value.getLocalName().contains(map.get(key).getLocalName())) {
 				return key;
 			}
 		}

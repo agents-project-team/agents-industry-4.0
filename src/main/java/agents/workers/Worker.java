@@ -12,7 +12,7 @@ import java.util.Random;
 
 public abstract class Worker<T> extends Agent {
 
-	private final static int FAILURE_RATE = 15; // %
+	private final static int FAILURE_RATE = 5; // %
 
 	private AID managerId;
 
@@ -49,7 +49,7 @@ public abstract class Worker<T> extends Agent {
 								if (getLocalName().contains("Assembler")) {
 									DFService.deregister(getAgent());
 								}
-							} catch (FIPAException e) {
+							} catch (FIPAException ignored) {
 							}
 
 							doDelete();
@@ -60,13 +60,6 @@ public abstract class Worker<T> extends Agent {
 			}
 		});
     }
-
-	//    @Override
-	//	protected void takeDown(){
-	//    	try{
-	//
-	//		}catch(Exception e) { }
-	//	}
 
 	public T getUnfinishedTask() {
 		return null;
