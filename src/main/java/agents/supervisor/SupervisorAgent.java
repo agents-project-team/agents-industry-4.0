@@ -2,8 +2,10 @@ package agents.supervisor;
 
 import agents.product.ProductOrder;
 import agents.utils.JsonConverter;
+import agents.workers.machines.MachineType;
 import jade.core.AID;
 import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
@@ -20,6 +22,8 @@ public class SupervisorAgent extends Agent {
 
 	private List<ProductOrder> sentOrders = new ArrayList<>();
 
+	private List<ProductOrder> finishedOrders = new ArrayList<>();
+
     private AID machineManager;
 
     private AID assemblerManager;
@@ -34,23 +38,34 @@ public class SupervisorAgent extends Agent {
         addBehaviour(new TickerBehaviour(this, 2000) {
             @Override
             protected void onTick() {
+            	ACLMessage msg = receive();
 				if (receivedOrders.size() > 0) {
 					System.out.println("\n============ " + "Supervisor sends product plan to managers" + " ============\n");
 
 					ProductOrder order = receivedOrders.get(0);
 					String productPlan = JsonConverter.toJsonString(order);
 
-					ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-					msg.setContent(productPlan);
-					msg.setProtocol("ORDER");
-					msg.addReceiver(machineManager);
-					msg.addReceiver(assemblerManager);
+					ACLMessage msgToManagers = new ACLMessage(ACLMessage.INFORM);
+					msgToManagers.setContent(productPlan);
+					msgToManagers.setProtocol("ORDER");
+					msgToManagers.addReceiver(machineManager);
+					msgToManagers.addReceiver(assemblerManager);
 					System.out.println("Supervisor sent messages");
-					send(msg);
+					send(msgToManagers);
 
 					receivedOrders.remove(order);
                     sentOrders.add(order);
                 }
+				if(msg!=null){
+					if(msg.getPerformative() == ACLMessage.INFORM && msg.getProtocol().equals("FORDER")){
+						ProductOrder finishedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
+						if(sentOrders.contains(finishedOrder)){
+							sentOrders.remove(finishedOrder);
+							finishedOrders.add(finishedOrder);
+						}
+
+					}
+				}
             }
         });
     }

@@ -1,6 +1,7 @@
 package agents.managers;
 
 import agents.product.PartPlan;
+import agents.product.Product;
 import agents.product.ProductOrder;
 import agents.product.ProductPlan;
 import agents.utils.JsonConverter;
@@ -11,21 +12,23 @@ import jade.core.Agent;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.core.behaviours.CyclicBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
-
-import javax.crypto.Mac;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class AssemblerManager extends Agent implements Manager<AID, AssemblerType> {
 
 	private AID supervisor;
+
+	private final List<ProductOrder> currentOrders = new ArrayList<>();
+
+	private final List<Product> finishedProducts = new ArrayList<>();
 
 	private Map<AssemblerType, AID> workingAssemblers = new HashMap<>();
 
@@ -50,15 +53,25 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 							//Send the product plan to the assemblers
 							ProductOrder order = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
 							ProductPlan plan = new ProductPlan(order);
+							currentOrders.add(order);
 							sendPlanToFabricAssembler(plan);
 							sendPlanToSoleAssembler(plan);
 							sendPLanToFinalAssembler(plan);
 						}
-					}else if(msg.getPerformative() == ACLMessage.UNKNOWN){
-						if(msg.getProtocol().equals("FPROD")) {
+					} else if (msg.getPerformative() == ACLMessage.UNKNOWN) {
+						if (msg.getProtocol().equals("FPROD")) {
 							//Unpack product
+							Product product = JsonConverter.fromJsonString(msg.getContent(), Product.class);
 							//Store somewhere
-							//once list is filled send message to supervisor to let it know we finished
+							Optional<Product> addedProduct = finishedProducts.stream()
+									.filter(p -> p.getProductId() == product.getProductId())
+									.findFirst();
+							if (addedProduct.isPresent()) {
+								addedProduct.get().increaseAmount(1);
+							} else {
+								finishedProducts.add(product);
+							}
+							finishedProductsOperation();
 						}
 					} else if (msg.getPerformative() == ACLMessage.CANCEL) {
 						AID deadMachine = msg.getSender();
@@ -77,6 +90,9 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 							workingAssemblers.computeIfPresent(key, (e, a) -> spareAssemblers.get(key).get(0));
 							spareAssemblers.get(key).remove(0);
 						}
+					} else if(msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL){
+						AID agentID = JsonConverter.fromJsonString(msg.getContent(), AID.class);
+						addAgentToRegistry(agentID, Objects.requireNonNull(getKey(workingAssemblers, agentID)));
 					}
 				} else {
 					block();
@@ -160,7 +176,9 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		try {
 			AgentController ac = cc.createNewAgent("Assembler" + type.name(), "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID()});
 			ac.start();
-			return new AID(ac.getName(), AID.ISGUID);
+			AID agentID = new AID(ac.getName(), AID.ISGUID);
+			addAgentToRegistry(agentID, type);
+			return agentID;
 		} catch (StaleProxyException e) {
 			throw new IllegalStateException();
 		}
@@ -206,5 +224,41 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		msgToFinalAssembler.setContent(JsonConverter.toJsonString(plan));
 		msgToFinalAssembler.addReceiver(workingAssemblers.get(AssemblerType.Final));
 		send(msgToFinalAssembler);
+	}
+
+	private void finishedProductsOperation(){
+		for(ProductOrder order : currentOrders){
+			Optional<Product> orderProduct = finishedProducts.stream()
+					.filter(p -> p.getProductId() == order.getOrderId()).findFirst();
+			if(orderProduct.isPresent()){
+				if(orderProduct.get().getProductAmount() >= order.getProductAmount()){
+					//Get Rid of products
+					orderProduct.get().increaseAmount(-1*order.getProductAmount());
+					//Send message to supervisor
+					notifyFinishedTask(order);
+				}
+			}
+		}
+	}
+
+	private void notifyFinishedTask(ProductOrder order){
+		ACLMessage msgToSupervisor = new ACLMessage(ACLMessage.INFORM);
+		msgToSupervisor.setProtocol("FORDER");
+		msgToSupervisor.addReceiver(getSupervisor());
+		msgToSupervisor.setContent(JsonConverter.toJsonString(order));
+		send(msgToSupervisor);
+	}
+
+	private void addAgentToRegistry(AID agent, AssemblerType type){
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(agent);
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType(type.toString());
+		dfd.addServices(sd);
+		try{
+			DFService.register(this, dfd);
+		}catch(FIPAException fe){
+			fe.printStackTrace();
+		}
 	}
 }

@@ -4,6 +4,7 @@ import agents.utils.JsonConverter;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.TickerBehaviour;
+import jade.domain.DFService;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.ControllerException;
 import java.util.Random;
@@ -48,6 +49,13 @@ public abstract class Worker<T> extends Agent {
 			}
 		});
     }
+
+    @Override
+	protected void takeDown(){
+    	try{
+			DFService.deregister(this);
+		}catch(Exception e) { }
+	}
 
 	public T getUnfinishedTask() {
 		return null;

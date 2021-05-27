@@ -10,9 +10,9 @@ public class ProductPart {
 
 	}
 
-    public ProductPart(String type){
+    public ProductPart(String type, int id){
         this.type = type;
-        partId = 1;
+        this.partId = id;
     }
 
 	public int getPartId() {
