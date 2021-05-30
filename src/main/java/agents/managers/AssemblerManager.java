@@ -4,6 +4,7 @@ import agents.product.Product;
 import agents.product.ProductOrder;
 import agents.product.ProductPlan;
 import agents.utils.JsonConverter;
+import agents.utils.Logger;
 import agents.workers.assemblers.AssemblerType;
 import agents.workers.machines.MachineType;
 import jade.core.AID;
@@ -57,23 +58,24 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 				if (msg != null) {
 					if (msg.getPerformative() == ACLMessage.INFORM) {
 						if (msg.getProtocol().equals("ORDER")) {
-							//Send the product plan to the assemblers
+							Logger.process("AssemblerManager distributes tasks among available machines");
+
 							ProductOrder order = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
-							currentOrders.add(order);
 							ProductPlan plan = new ProductPlan(order);
 							sendPlanToFabricAssembler(plan);
 							sendPlanToSoleAssembler(plan);
 							sendPLanToFinalAssembler(plan);
+							currentOrders.add(order);
 						}
 					} else if (msg.getPerformative() == ACLMessage.UNKNOWN) {
 						if (msg.getProtocol().equals("FPROD")) {
-							System.out.println(getLocalName()+" has received product");
-							//Unpack product
+							Logger.info(getLocalName() + " has received product");
+
 							Product product = JsonConverter.fromJsonString(msg.getContent(), Product.class);
-							//Store somewhere
 							Optional<Product> addedProduct = finishedProducts.stream()
 									.filter(p -> p.getProductId() == product.getProductId())
 									.findFirst();
+
 							if (addedProduct.isPresent()) {
 								addedProduct.get().increaseAmount(1);
 							} else {
@@ -88,9 +90,10 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 						if (key != null) {
 							var replacementMessage = new ACLMessage();
 							if (spareAssemblers.get(key).isEmpty()) {
-								System.out.println("No more " + key + " assemblers left.");
+								Logger.info("No more " + key + " assemblers left.");
 								return;
 							}
+
 							replacementMessage.addReceiver(spareAssemblers.get(key).get(0));
 							replacementMessage.setPerformative(ACLMessage.PROPOSE);
 							send(replacementMessage);
@@ -134,7 +137,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 				Arrays.asList(
 						startBackupAssemblerAgent(AssemblerType.Fabric + "1", cc, AssemblerType.Fabric),
 						startBackupAssemblerAgent(AssemblerType.Fabric + "2", cc, AssemblerType.Fabric),
-						startBackupAssemblerAgent(AssemblerType.Fabric + "3", cc,  AssemblerType.Fabric)
+						startBackupAssemblerAgent(AssemblerType.Fabric + "3", cc, AssemblerType.Fabric)
 				)
 		));
 
@@ -191,7 +194,8 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	private AID startAssemblerAgent(AssemblerType type) {
 		ContainerController cc = getContainerController();
 		try {
-			AgentController ac = cc.createNewAgent("Assembler" + type.name(), "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID(), type.toString()});
+			AgentController ac = cc.createNewAgent("Assembler" + type.name(), "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID(),
+					type.toString()});
 			ac.start();
 			AID agentID = new AID(ac.getName(), AID.ISGUID);
 			addAgentToRegistry(agentID, type);
@@ -203,7 +207,8 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 
 	private AID startBackupAssemblerAgent(String name, ContainerController cc, AssemblerType type) {
 		try {
-			AgentController ac = cc.createNewAgent("AssemblerBackup" + name, "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID(), type.toString()});
+			AgentController ac = cc.createNewAgent("AssemblerBackup" + name, "agents.workers.assemblers.AssemblerAgent", new Object[]{getAID(),
+					type.toString()});
 			ac.start();
 			return new AID(ac.getName(), AID.ISGUID);
 		} catch (Exception e) {
@@ -255,7 +260,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 				if (orderProduct.get().getProductAmount() >= order.getProductAmount()) {
 					//Get Rid of products
 					orderProduct.get().increaseAmount(-1 * order.getProductAmount());
-					if(orderProduct.get().getProductAmount() == 0){
+					if (orderProduct.get().getProductAmount() == 0) {
 						finishedProducts.remove(order);
 					}
 					//Send message to supervisor
@@ -271,7 +276,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		msgToSupervisor.addReceiver(getSupervisor());
 		msgToSupervisor.setContent(JsonConverter.toJsonString(order));
 		send(msgToSupervisor);
-		System.out.println(getLocalName()+" has sent a message to supervisor");
+		Logger.info(getLocalName() + " has sent a order to supervisor");
 	}
 
 	private void addAgentToRegistry(AID agent, AssemblerType type) {

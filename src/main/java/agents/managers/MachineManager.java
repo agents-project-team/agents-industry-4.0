@@ -4,6 +4,7 @@ import agents.product.PartPlan;
 import agents.product.ProductOrder;
 import agents.product.ProductPlan;
 import agents.utils.JsonConverter;
+import agents.utils.Logger;
 import agents.workers.machines.MachineType;
 import jade.core.AID;
 import jade.core.Agent;
@@ -49,12 +50,10 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 				if (msg != null) {
 					if (msg.getPerformative() == ACLMessage.INFORM) {
 						if (msg.getProtocol().equals("ORDER")) {
-							System.out.println("----- " + "MachineManager distributes tasks among available machines" + " -----\n");
+							Logger.process("MachineManager distributes tasks among available machines");
 
-							//Add order to queue of orders
 							ProductOrder order = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
 							ProductPlan plan = new ProductPlan(order);
-							//Check if contains orders, else send more
 							for (AID worker : workingMachines.values()) {
 								if (checkForMachineAvailability(getKey(workingMachines, worker))) {
 									ACLMessage msgToWorker = new ACLMessage(ACLMessage.REQUEST);
@@ -101,7 +100,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 							replacementMessage.setPerformative(ACLMessage.PROPOSE);
 							send(replacementMessage);
 
-							System.out.println("\n----------- " + "Sending unfinished task to a backup " + key + " machine" + " -----------\n");
+							Logger.process("Sending unfinished task to a backup " + key + " machine");
 
 							var unfinishedPartMessage = new ACLMessage();
 							unfinishedPartMessage.addReceiver(spareMachines.get(key).get(0));
@@ -255,12 +254,6 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 				.findFirst()
 				.orElse(null);
 
-		//		//Sorted list
-		//		for(var p : currentPlans) {
-		//			PartPlan tmp = p.getPlanParts().get(key);
-		//			if(tmp.getCurrentAmount() > 0) return tmp;
-		//		}
-		//		return null;
 	}
 
 	private void addCurrentPlan(ProductPlan plan) {

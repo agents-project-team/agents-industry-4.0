@@ -1,6 +1,7 @@
 package agents.workers;
 
 import agents.utils.JsonConverter;
+import agents.utils.Logger;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.TickerBehaviour;
@@ -12,7 +13,7 @@ import java.util.Random;
 
 public abstract class Worker<T> extends Agent {
 
-	private final static int FAILURE_RATE = 5; // %
+	private final static int FAILURE_RATE = 7; // %
 
 	private AID managerId;
 
@@ -31,13 +32,11 @@ public abstract class Worker<T> extends Agent {
 			protected void onTick() {
 				Random random = new Random();
 				int randomNumber = random.nextInt(100);
-
 				if (randomNumber < FAILURE_RATE) {
 					try {
 						String name = getAgent().getContainerController().getContainerName();
 						if (!name.contains("Backup")) {
-							System.out.println("\n================ " + getLocalName() + (getLocalName().contains("Assembler") ? "" :
-									"Machine") + " breaks... ================\n");
+							Logger.breaks(getLocalName() + (getLocalName().contains("Assembler") ? "" : "Machine") + " breaks...");
 
 							var iAmDeadMessage = new ACLMessage();
 							iAmDeadMessage.addReceiver(managerId);
@@ -49,12 +48,14 @@ public abstract class Worker<T> extends Agent {
 								if (getLocalName().contains("Assembler")) {
 									DFService.deregister(getAgent());
 								}
-							} catch (FIPAException ignored) {
+							} catch (FIPAException e) {
+								e.printStackTrace();
 							}
 
 							doDelete();
 						}
-					} catch (ControllerException ignored) {
+					} catch (ControllerException e) {
+						e.printStackTrace();
 					}
 				}
 			}

@@ -2,6 +2,7 @@ package agents.supervisor;
 
 import agents.product.ProductOrder;
 import agents.utils.JsonConverter;
+import agents.utils.Logger;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.TickerBehaviour;
@@ -15,31 +16,31 @@ import java.util.Optional;
 public class SupervisorAgent extends Agent {
 
 	private List<ProductOrder> receivedOrders = new ArrayList<>(
-			List.of(new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 3, 3),
-					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 4, 4))
+			List.of(new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 1, 3),
+					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 1, 4))
 	);
 
 	private List<ProductOrder> sentOrders = new ArrayList<>();
 
 	private List<ProductOrder> finishedOrders = new ArrayList<>();
 
-    private AID machineManager;
+	private AID machineManager;
 
-    private AID assemblerManager;
+	private AID assemblerManager;
 
-    @Override
-    protected void setup() {
+	@Override
+	protected void setup() {
 		machineManager = startMachineManager();
 		assemblerManager = startAssemblerManager();
 
 		doWait(2000);
 
-        addBehaviour(new TickerBehaviour(this, 2000) {
-            @Override
-            protected void onTick() {
-            	ACLMessage msg = receive();
+		addBehaviour(new TickerBehaviour(this, 2000) {
+			@Override
+			protected void onTick() {
+				ACLMessage msg = receive();
 				if (receivedOrders.size() > 0) {
-					System.out.println("\n============ " + "Supervisor sends product plan to managers" + " ============\n");
+					Logger.supervisor("Supervisor sends product plan to managers");
 
 					ProductOrder order = receivedOrders.get(0);
 					String productPlan = JsonConverter.toJsonString(order);
@@ -52,30 +53,29 @@ public class SupervisorAgent extends Agent {
 					send(msgToManagers);
 
 					receivedOrders.remove(order);
-                    sentOrders.add(order);
-                }
-				if(msg!=null){
-					if(msg.getPerformative() == ACLMessage.INFORM && msg.getProtocol().equals("FORDER")){
-						System.out.println(getLocalName()+" has received a finished order");
+					sentOrders.add(order);
+				}
+				if (msg != null) {
+					if (msg.getPerformative() == ACLMessage.INFORM && msg.getProtocol().equals("FORDER")) {
+						Logger.supervisor("Supervisor has received a finished order");
+
 						ProductOrder finishedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
 						Optional<ProductOrder> sentOrder = sentOrders.stream()
 								.filter(ord -> ord.getOrderId() == finishedOrder.getOrderId())
 								.findFirst();
-						if(sentOrder.isPresent()){
+						if (sentOrder.isPresent()) {
 							sentOrders.remove(sentOrder.get());
 							finishedOrders.add(sentOrder.get());
 							printFinishedOrders();
 						}
-						if(sentOrders.size() == 0){
-							System.out.println("======================================================");
-							System.out.println("All orders have been completed");
-							System.out.println("======================================================");
+						if (sentOrders.size() == 0) {
+							Logger.summary("All orders have been completed", true);
 						}
 					}
 				}
-            }
-        });
-    }
+			}
+		});
+	}
 
 	private AID startMachineManager() {
 		try {
@@ -101,40 +101,47 @@ public class SupervisorAgent extends Agent {
 		}
 	}
 
-    public void connectAssemblerManager(AID assemblerManager){
-        this.assemblerManager = assemblerManager;
-    }
-
-    public void connectMachineManager(AID machineManager){
-        this.machineManager = machineManager;
-    }
-
-    public void setReceivedOrders(List<ProductOrder> orders){
-        receivedOrders = orders;
-    }
-
-    public void setSentOrders(List<ProductOrder> orders){
-        sentOrders = orders;
-    }
-
-    public AID getMachineManager(){ return machineManager; }
-
-	public AID getAssemblerManager(){ return assemblerManager ;}
-
-	public List<ProductOrder> getReceivedOrders(){ return receivedOrders; }
-
-	public List<ProductOrder> getSentOrders(){ return sentOrders; }
-
-	private void printFinishedOrders(){
-		System.out.println("\nOrders that have been completed: ");
-    	for(ProductOrder order : finishedOrders){
-			System.out.println("=============================================");
-			System.out.println("Order: "+order.getOrderId());
-			System.out.println("Product ID: "+order.getProductId());
-			System.out.println("Product Amount: "+order.getProductAmount());
-			System.out.println("Order Priority: "+order.getOrderPriority());
-			System.out.println("=============================================");
+	private void printFinishedOrders() {
+		Logger.supervisor("Prints list of finished orders:");
+		for (ProductOrder order : finishedOrders) {
+			String orderDescription = "";
+			orderDescription += "Order: " + order.getOrderId() + "\n";
+			orderDescription += "Product ID: " + order.getProductId() + "\n";
+			orderDescription += "Product Amount: " + order.getProductAmount() + "\n";
+			orderDescription += "Order Priority: " + order.getOrderPriority();
+			Logger.summary(orderDescription, false);
 		}
-		System.out.println();
+	}
+
+	public void connectAssemblerManager(AID assemblerManager) {
+		this.assemblerManager = assemblerManager;
+	}
+
+	public void connectMachineManager(AID machineManager) {
+		this.machineManager = machineManager;
+	}
+
+	public void setReceivedOrders(List<ProductOrder> orders) {
+		receivedOrders = orders;
+	}
+
+	public void setSentOrders(List<ProductOrder> orders) {
+		sentOrders = orders;
+	}
+
+	public AID getMachineManager() {
+		return machineManager;
+	}
+
+	public AID getAssemblerManager() {
+		return assemblerManager;
+	}
+
+	public List<ProductOrder> getReceivedOrders() {
+		return receivedOrders;
+	}
+
+	public List<ProductOrder> getSentOrders() {
+		return sentOrders;
 	}
 }
