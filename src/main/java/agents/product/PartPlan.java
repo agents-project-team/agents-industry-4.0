@@ -1,6 +1,5 @@
 package agents.product;
 
-//Part plan
 public class PartPlan {
 
 	private int Id;

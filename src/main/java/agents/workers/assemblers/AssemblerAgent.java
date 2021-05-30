@@ -16,12 +16,13 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class AssemblerAgent extends Worker<Object> {
+public class AssemblerAgent extends Worker<AssemblerState> {
 
 	private Object blueprint;
 
@@ -29,9 +30,9 @@ public class AssemblerAgent extends Worker<Object> {
 
 	private AID nextAssembler;
 
-	private final List<ProductPlan> currentPlans = new ArrayList<>();
+	private List<ProductPlan> currentPlans = new ArrayList<>();
 
-	private final List<ProductPart> storedParts = new ArrayList<>();
+	private List<ProductPart> storedParts = new ArrayList<>();
 
 	@Override
 	public void setup() {
@@ -48,31 +49,55 @@ public class AssemblerAgent extends Worker<Object> {
 					if (msg.getPerformative() == ACLMessage.INFORM) {
 						Logger.info(getLocalName() + " has received the plan!");
 
-						currentPlans.add(JsonConverter.fromJsonString(msg.getContent(), ProductPlan.class));
-						currentPlans.sort(Comparator.comparing(ProductPlan::getPriority, Comparator.reverseOrder()));
+						if(!msg.getSender().getLocalName().equals("df")) {
+							currentPlans.add(JsonConverter.fromJsonString(msg.getContent(), ProductPlan.class));
+							currentPlans.sort(Comparator.comparing(ProductPlan::getPriority, Comparator.reverseOrder()));
+						}
 					} else if (msg.getPerformative() == ACLMessage.UNKNOWN) {
 						if (msg.getProtocol().equals("SPART")) {
 							ProductPart receivedPart = JsonConverter.fromJsonString(msg.getContent(), ProductPart.class);
 							storedParts.add(receivedPart);
 							assembleParts();
 						}
+					} else if (msg.getPerformative() == ACLMessage.REQUEST) {
+						AssemblerState assemblerState = JsonConverter.fromJsonString(msg.getContent(), AssemblerState.class);
+						currentPlans = assemblerState.getCurrentPlans();
+						storedParts = assemblerState.getStoredParts();
+						assembleParts();
 					} else if (msg.getPerformative() == ACLMessage.PROPOSE) {
 						Logger.process(getLocalName() + " replaces broken machine.");
-
-						ACLMessage msgToManager = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
-						msgToManager.setContent(getAID().getName());
-						msgToManager.addReceiver(getManagerId());
-						send(msgToManager);
 
 						ContainerID destination = new ContainerID();
 						destination.setName("Main-Container");
 						doMove(destination);
+
+						addAgentToRegistry();
 					}
 				} else {
 					block();
 				}
 			}
 		});
+	}
+
+	@Override
+	public AssemblerState getUnfinishedTask() {
+		return new AssemblerState(currentPlans, storedParts);
+	}
+
+	private void addAgentToRegistry() {
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+		AssemblerType type = AssemblerType.getTypeByName(getWorkerType());
+		ServiceDescription sd = new ServiceDescription();
+		sd.setName(type.toString());
+		sd.setType(type.toString());
+		dfd.addServices(sd);
+		try {
+			DFService.register(this, dfd);
+		} catch (FIPAException fe) {
+			fe.printStackTrace();
+		}
 	}
 
 	private void assembleParts() {
@@ -110,7 +135,8 @@ public class AssemblerAgent extends Worker<Object> {
 	}
 
 	private void sendParts(List<ProductPart> parts) {
-		if (getWorkerType().equals(AssemblerType.Final.toString())) {
+		if (AssemblerType.getTypeByName(getWorkerType()) == AssemblerType.Final) {
+			System.out.println("To manager");
 			if (parts.size() > 0) {
 				Product product = new Product(parts.get(0).getPartId(), 1, parts);
 				ACLMessage msgToAssemblerManager = new ACLMessage(ACLMessage.UNKNOWN);
@@ -120,6 +146,7 @@ public class AssemblerAgent extends Worker<Object> {
 				send(msgToAssemblerManager);
 			}
 		} else {
+			System.out.println("To manager");
 			AID receiverAID = getReceiverAID(AssemblerType.Final);
 			for (ProductPart p : parts) {
 				ACLMessage partsToFinalAssembler = new ACLMessage(ACLMessage.UNKNOWN);

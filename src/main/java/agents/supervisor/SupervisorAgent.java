@@ -16,8 +16,8 @@ import java.util.Optional;
 public class SupervisorAgent extends Agent {
 
 	private List<ProductOrder> receivedOrders = new ArrayList<>(
-			List.of(new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 1, 3),
-					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 1, 4))
+			List.of(new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 5, 3),
+					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 2, 6))
 	);
 
 	private List<ProductOrder> sentOrders = new ArrayList<>();
@@ -70,6 +70,7 @@ public class SupervisorAgent extends Agent {
 						}
 						if (sentOrders.size() == 0) {
 							Logger.summary("All orders have been completed", true);
+							System.exit(0);
 						}
 					}
 				}

@@ -212,7 +212,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
 	private AID startBackupWorkerAgent(String name, ContainerController cc) {
 		try {
-			AgentController ac = cc.createNewAgent("Backup" + name, "agents.workers.machines.MachineAgent", new Object[]{getAID(), "Backup"});
+			AgentController ac = cc.createNewAgent("Backup" + name, "agents.workers.machines.MachineAgent", new Object[]{getAID(), "Backup" + name});
 			ac.start();
 			return new AID(ac.getName(), AID.ISGUID);
 		} catch (Exception e) {

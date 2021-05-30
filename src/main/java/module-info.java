@@ -14,6 +14,7 @@ module agents {
 	exports agents.utils;
 
 	opens agents.product;
+	opens agents.workers.assemblers to com.fasterxml.jackson.databind;
 	opens agents to javafx.fxml;
     opens agents.workers to jade;
 }

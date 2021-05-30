@@ -14,6 +14,7 @@ import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
+import java.util.Arrays;
 
 public class MachineAgent extends Worker<PartPlan> {
 
@@ -54,6 +55,7 @@ public class MachineAgent extends Worker<PartPlan> {
 						ProductPart createdPart = new ProductPart(plan.getPartType(), plan.getId());
 
 						AID receiverAssembler = getCurrentAssembler();
+						System.out.println("for " + receiverAssembler);
 						if (receiverAssembler != null) {
 							ACLMessage msgToAssembler = new ACLMessage(ACLMessage.UNKNOWN);
 							msgToAssembler.setProtocol("SPART");
@@ -82,11 +84,11 @@ public class MachineAgent extends Worker<PartPlan> {
 
 	private AID getCurrentAssembler() {
 		ServiceDescription sd = new ServiceDescription();
-		String ownType = getWorkerType();
-		if (ownType.equals(MachineType.DetailFabric.toString()) || ownType.equals(MachineType.InnerFabric.toString()) || ownType.equals(MachineType.SurfaceFabric.toString())) {
+		MachineType ownType = MachineType.getByName(getWorkerType());
+		if (ownType == MachineType.DetailFabric || ownType == MachineType.InnerFabric || ownType == MachineType.SurfaceFabric) {
 			sd.setType(AssemblerType.Fabric.toString());
 			sd.setName(AssemblerType.Fabric.toString());
-		} else if (ownType.equals(MachineType.Sole.toString()) || ownType.equals(MachineType.Outsole.toString())) {
+		} else if (ownType == MachineType.Sole || ownType == MachineType.Outsole) {
 			sd.setType(AssemblerType.Sole.toString());
 			sd.setName(AssemblerType.Sole.toString());
 		}

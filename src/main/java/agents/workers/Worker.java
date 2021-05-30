@@ -13,7 +13,7 @@ import java.util.Random;
 
 public abstract class Worker<T> extends Agent {
 
-	private final static int FAILURE_RATE = 7; // %
+	private static int FAILURE_RATE = 15; // %
 
 	private AID managerId;
 
