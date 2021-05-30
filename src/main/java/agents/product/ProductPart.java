@@ -11,8 +11,8 @@ public class ProductPart {
 	}
 
     public ProductPart(String type, int id){
-        this.type = type;
-        this.partId = id;
+		this.partId = id;
+		this.type = type;
     }
 
 	public int getPartId() {

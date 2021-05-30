@@ -2,16 +2,15 @@ package agents.supervisor;
 
 import agents.product.ProductOrder;
 import agents.utils.JsonConverter;
-import agents.workers.machines.MachineType;
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class SupervisorAgent extends Agent {
 
@@ -50,7 +49,6 @@ public class SupervisorAgent extends Agent {
 					msgToManagers.setProtocol("ORDER");
 					msgToManagers.addReceiver(machineManager);
 					msgToManagers.addReceiver(assemblerManager);
-					System.out.println("Supervisor sent messages");
 					send(msgToManagers);
 
 					receivedOrders.remove(order);
@@ -58,12 +56,21 @@ public class SupervisorAgent extends Agent {
                 }
 				if(msg!=null){
 					if(msg.getPerformative() == ACLMessage.INFORM && msg.getProtocol().equals("FORDER")){
+						System.out.println(getLocalName()+" has received a finished order");
 						ProductOrder finishedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
-						if(sentOrders.contains(finishedOrder)){
-							sentOrders.remove(finishedOrder);
-							finishedOrders.add(finishedOrder);
+						Optional<ProductOrder> sentOrder = sentOrders.stream()
+								.filter(ord -> ord.getOrderId() == finishedOrder.getOrderId())
+								.findFirst();
+						if(sentOrder.isPresent()){
+							sentOrders.remove(sentOrder.get());
+							finishedOrders.add(sentOrder.get());
+							printFinishedOrders();
 						}
-
+						if(sentOrders.size() == 0){
+							System.out.println("======================================================");
+							System.out.println("All orders have been completed");
+							System.out.println("======================================================");
+						}
 					}
 				}
             }
@@ -117,4 +124,17 @@ public class SupervisorAgent extends Agent {
 	public List<ProductOrder> getReceivedOrders(){ return receivedOrders; }
 
 	public List<ProductOrder> getSentOrders(){ return sentOrders; }
+
+	private void printFinishedOrders(){
+		System.out.println("\nOrders that have been completed: ");
+    	for(ProductOrder order : finishedOrders){
+			System.out.println("=============================================");
+			System.out.println("Order: "+order.getOrderId());
+			System.out.println("Product ID: "+order.getProductId());
+			System.out.println("Product Amount: "+order.getProductAmount());
+			System.out.println("Order Priority: "+order.getOrderPriority());
+			System.out.println("=============================================");
+		}
+		System.out.println();
+	}
 }

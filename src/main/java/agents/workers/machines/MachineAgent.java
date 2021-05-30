@@ -15,6 +15,8 @@ import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 
 import javax.crypto.Mac;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MachineAgent extends Worker<PartPlan> {
 
@@ -27,8 +29,6 @@ public class MachineAgent extends Worker<PartPlan> {
 	private AID assemblerId;
 
 	private int seconds;
-
-	private MachineType ownType;
 
 	private PartPlan currentPlan;
 
@@ -46,20 +46,21 @@ public class MachineAgent extends Worker<PartPlan> {
 						destination.setName("Main-Container");
 						doMove(destination);
 					} else if (msg.getPerformative() == ACLMessage.REQUEST) {
-						System.out.println(getLocalName() + " machine has received a task!");
 						PartPlan plan = JsonConverter.fromJsonString(msg.getContent(), PartPlan.class);
 						currentPlan = plan;
 
 						//Processing time
+						System.out.println(getLocalName()+" is creating a part");
 						doWait(2000);
 
-						ProductPart newPart = new ProductPart(plan.getPartType(), plan.getId());
+						ProductPart createdPart = new ProductPart(plan.getPartType(), plan.getId());
 						//Part is sent
 						AID receiverAssembler = getCurrentAssembler();
 						if(receiverAssembler!=null){
-							ACLMessage msgToAssembler = new ACLMessage(ACLMessage.INFORM);
+							ACLMessage msgToAssembler = new ACLMessage(ACLMessage.UNKNOWN);
+							msgToAssembler.setProtocol("SPART");
 							msgToAssembler.addReceiver(receiverAssembler);
-							msgToAssembler.setContent(JsonConverter.toJsonString(newPart));
+							msgToAssembler.setContent(JsonConverter.toJsonString(createdPart));
 							send(msgToAssembler);
 						}
 						//Return a message to the overlord
@@ -68,7 +69,6 @@ public class MachineAgent extends Worker<PartPlan> {
 						msgToManager.setProtocol("FTASK");
 						msgToManager.setContent(msg.getContent());
 						send(msgToManager);
-						System.out.println(getLocalName() + " machine has finished its work.");
 					}
 				} else {
 					block();
@@ -84,10 +84,13 @@ public class MachineAgent extends Worker<PartPlan> {
 
 	private AID getCurrentAssembler() {
 		ServiceDescription sd = new ServiceDescription();
-    	if(ownType == MachineType.DetailFabric || ownType == MachineType.SurfaceFabric || ownType == MachineType.InnerFabric){
+		String ownType = getWorkerType();
+    	if(ownType.equals(MachineType.DetailFabric.toString()) || ownType.equals(MachineType.InnerFabric.toString()) || ownType.equals(MachineType.SurfaceFabric.toString())){
     		sd.setType(AssemblerType.Fabric.toString());
-		}else if(ownType == MachineType.Sole || ownType == MachineType.Outsole){
+    		sd.setName(AssemblerType.Fabric.toString());
+		}else if(ownType.equals(MachineType.Sole.toString()) || ownType.equals(MachineType.Outsole.toString())){
 			sd.setType(AssemblerType.Sole.toString());
+			sd.setName(AssemblerType.Sole.toString());
 		}
     	DFAgentDescription dfd = new DFAgentDescription();
     	dfd.addServices(sd);

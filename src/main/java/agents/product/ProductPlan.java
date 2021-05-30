@@ -7,19 +7,28 @@ import java.util.Map;
 //Blueprint class
 public class ProductPlan {
 
-    private final int Id;
+    private int Id;
 
-	private final int priority;
+	private int priority;
 
 	private int amount;
 
 	private Map<MachineType, PartPlan> planParts = new HashMap<>();
+
+	public ProductPlan() { }
 
     public ProductPlan(ProductOrder order) {
         this.Id = order.getOrderId();
         this.priority = order.getOrderPriority();
         this.amount = order.getProductAmount();
         createProductPlan(order.getProductId());
+    }
+
+    public ProductPlan(ProductPlan plan){
+        this.Id = plan.Id;
+        this.priority = plan.priority;
+        this.amount = plan.amount;
+        this.planParts = new HashMap<>(plan.planParts);
     }
 
 	private void createProductPlan(String productId) {
@@ -72,8 +81,13 @@ public class ProductPlan {
     public void setAmount(int amount){
         this.amount = amount;
     }
+    public void setPriority(int priority){ this.priority = priority; }
+    public void setId(int id) { this.Id = id; }
+    public void setPlanParts(Map<MachineType, PartPlan> planParts){ this.planParts = planParts; }
+
     public int getAmount(){ return this.amount; }
     public int getPriority(){ return this.priority; }
     public int getId(){ return this.Id; }
     public Map<MachineType, PartPlan> getPlanParts(){ return this.planParts; }
+
 }

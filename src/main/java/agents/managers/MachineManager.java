@@ -202,7 +202,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 	private AID startWorkerAgent(MachineType type) {
 		try {
 			ContainerController cc = getContainerController();
-			AgentController ac = cc.createNewAgent(type.name(), "agents.workers.machines.MachineAgent", new Object[]{getAID()});
+			AgentController ac = cc.createNewAgent(type.name(), "agents.workers.machines.MachineAgent", new Object[]{getAID(), type.toString()});
 			ac.start();
 			return new AID(ac.getName(), AID.ISGUID);
 		} catch (Exception e) {
@@ -213,7 +213,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
 	private AID startBackupWorkerAgent(String name, ContainerController cc) {
 		try {
-			AgentController ac = cc.createNewAgent("Backup" + name, "agents.workers.machines.MachineAgent", new Object[]{getAID()});
+			AgentController ac = cc.createNewAgent("Backup" + name, "agents.workers.machines.MachineAgent", new Object[]{getAID(), "Backup"});
 			ac.start();
 			return new AID(ac.getName(), AID.ISGUID);
 		} catch (Exception e) {
