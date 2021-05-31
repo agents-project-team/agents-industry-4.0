@@ -16,8 +16,8 @@ import java.util.Optional;
 public class SupervisorAgent extends Agent {
 
 	private List<ProductOrder> receivedOrders = new ArrayList<>(
-			List.of(new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 5, 3),
-					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 2, 6))
+			List.of(new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 2, 3),
+					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 3, 3))
 	);
 
 	private List<ProductOrder> sentOrders = new ArrayList<>();

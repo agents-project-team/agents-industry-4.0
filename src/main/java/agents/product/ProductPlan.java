@@ -71,11 +71,12 @@ public class ProductPlan {
         }
     }
 
-    public void decreaseAllAmounts(){
+    public boolean decreaseAllAmounts(){
         for(PartPlan p : planParts.values()){
             p.decreaseCurrentAmount();
         }
         this.amount--;
+		return this.amount == 0;
     }
 
     public void setAmount(int amount){
@@ -90,4 +91,13 @@ public class ProductPlan {
     public int getId(){ return this.Id; }
     public Map<MachineType, PartPlan> getPlanParts(){ return this.planParts; }
 
+	@Override
+	public String toString() {
+		return "ProductPlan{" +
+				"Id=" + Id +
+				", priority=" + priority +
+				", amount=" + amount +
+				", planParts=" + planParts +
+				'}';
+	}
 }

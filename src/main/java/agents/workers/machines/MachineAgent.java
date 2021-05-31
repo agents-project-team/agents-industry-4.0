@@ -55,7 +55,6 @@ public class MachineAgent extends Worker<PartPlan> {
 						ProductPart createdPart = new ProductPart(plan.getPartType(), plan.getId());
 
 						AID receiverAssembler = getCurrentAssembler();
-						System.out.println("for " + receiverAssembler);
 						if (receiverAssembler != null) {
 							ACLMessage msgToAssembler = new ACLMessage(ACLMessage.UNKNOWN);
 							msgToAssembler.setProtocol("SPART");

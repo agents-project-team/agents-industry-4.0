@@ -265,8 +265,11 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 
 	private void finishedProductsOperation() {
 		for (ProductOrder order : currentOrders) {
-			Optional<Product> orderProduct = finishedProducts.stream()
-					.filter(p -> p.getProductId() == order.getOrderId()).findFirst();
+			Optional<Product> orderProduct = finishedProducts
+					.stream()
+					.filter(p -> p.getProductId() == order.getOrderId())
+					.findFirst();
+
 			if (orderProduct.isPresent()) {
 				if (orderProduct.get().getProductAmount() >= order.getProductAmount()) {
 					orderProduct.get().increaseAmount(-1 * order.getProductAmount());
