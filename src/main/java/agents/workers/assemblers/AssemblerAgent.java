@@ -105,9 +105,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 	}
 
 	private void assembleParts() {
-		currentPlans.stream().filter(p -> p.getAmount() < 0).forEach(System.out::println);
-		List<ProductPlan> currentPlansCopy = new ArrayList<>(this.currentPlans);
-		for (ProductPlan plan : currentPlansCopy) {
+		for (ProductPlan plan : currentPlans) {
 			List<ProductPart> parts = getStorageParts(plan);
 			if (parts.size() > 0) {
 				Logger.info(getLocalName() + " is assembling part");
@@ -115,9 +113,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 				doWait(2000);
 
 				sendParts(parts);
-				if (plan.decreaseAllAmounts()) {
-					currentPlans.remove(plan);
-				}
+				plan.decreaseAllAmounts();
 			}
 		}
 	}

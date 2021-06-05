@@ -16,7 +16,7 @@ import java.util.Optional;
 public class SupervisorAgent extends Agent {
 
 	private List<ProductOrder> receivedOrders = new ArrayList<>(
-			List.of(new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 2, 3),
+			List.of(new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 2, 4),
 					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 3, 3))
 	);
 
@@ -38,7 +38,6 @@ public class SupervisorAgent extends Agent {
 		addBehaviour(new TickerBehaviour(this, 2000) {
 			@Override
 			protected void onTick() {
-				ACLMessage msg = receive();
 				if (receivedOrders.size() > 0) {
 					Logger.supervisor("Supervisor sends product plan to managers");
 
@@ -55,6 +54,8 @@ public class SupervisorAgent extends Agent {
 					receivedOrders.remove(order);
 					sentOrders.add(order);
 				}
+
+				ACLMessage msg = receive();
 				if (msg != null) {
 					if (msg.getPerformative() == ACLMessage.INFORM && msg.getProtocol().equals("FORDER")) {
 						Logger.supervisor("Supervisor has received a finished order");
@@ -63,6 +64,8 @@ public class SupervisorAgent extends Agent {
 						Optional<ProductOrder> sentOrder = sentOrders.stream()
 								.filter(ord -> ord.getOrderId() == finishedOrder.getOrderId())
 								.findFirst();
+
+						System.out.println(sentOrder.isPresent());
 						if (sentOrder.isPresent()) {
 							sentOrders.remove(sentOrder.get());
 							finishedOrders.add(sentOrder.get());

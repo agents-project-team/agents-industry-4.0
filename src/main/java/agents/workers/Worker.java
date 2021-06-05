@@ -13,7 +13,7 @@ import java.util.Random;
 
 public abstract class Worker<T> extends Agent {
 
-	private static int FAILURE_RATE = 100; // %
+	private static int FAILURE_RATE = 3; // %
 
 	private AID managerId;
 
@@ -35,7 +35,7 @@ public abstract class Worker<T> extends Agent {
 				if (randomNumber < FAILURE_RATE) {
 					try {
 						String name = getAgent().getContainerController().getContainerName();
-						if (!name.contains("Backup") && (getLocalName().contains("Final") || getLocalName().contains("Sole"))) {
+						if (!name.contains("Backup")) {
 							Logger.breaks(getLocalName() + (getLocalName().contains("Assembler") ? "" : "Machine") + " breaks...");
 
 							var iAmDeadMessage = new ACLMessage();
@@ -53,8 +53,6 @@ public abstract class Worker<T> extends Agent {
 							}
 
 							doDelete();
-
-							FAILURE_RATE = 30;
 						}
 					} catch (ControllerException e) {
 						e.printStackTrace();

@@ -71,15 +71,15 @@ public class ProductPlan {
         }
     }
 
-    public boolean decreaseAllAmounts(){
-        for(PartPlan p : planParts.values()){
-            p.decreaseCurrentAmount();
-        }
-        this.amount--;
-		return this.amount == 0;
-    }
+	public void decreaseAllAmounts(){
+		for(PartPlan p : planParts.values()){
+			p.decreaseCurrentAmount();
+		}
+		this.amount--;
+	}
 
-    public void setAmount(int amount){
+
+	public void setAmount(int amount){
         this.amount = amount;
     }
     public void setPriority(int priority){ this.priority = priority; }
