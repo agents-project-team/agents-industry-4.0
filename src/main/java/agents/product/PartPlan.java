@@ -6,11 +6,11 @@ public class PartPlan {
     private int totalAmount;
     private int currentAmount;
     private String partType;
-    private int seconds;
+    private double seconds;
 
 	public PartPlan() { }
 
-    public PartPlan(int id, String partType, int totalAmount, int seconds){
+    public PartPlan(int id, String partType, int totalAmount, double seconds){
         this.Id = id;
         this.partType = partType;
         this.totalAmount = totalAmount;
@@ -40,10 +40,10 @@ public class PartPlan {
     public String getPartType() { return partType; }
     public int getCurrentAmount() { return currentAmount; }
     public int getTotalAmount() { return totalAmount; }
-	public int getSeconds() {
+	public double getSeconds() {
 		return seconds;
 	}
-	public void setSeconds(int seconds) {
+	public void setSeconds(double seconds) {
 		this.seconds = seconds;
 	}
 

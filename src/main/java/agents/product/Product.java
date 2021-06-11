@@ -28,4 +28,12 @@ public class Product {
     public int getProductId(){ return this.productId; }
     public int getProductAmount(){ return  this.productAmount; }
     public List<ProductPart> getProductParts(){ return this.productParts; }
+
+	@Override
+	public String toString() {
+		return "P{" +
+				"productId=" + productId +
+				", productAmount=" + productAmount +
+				'}';
+	}
 }

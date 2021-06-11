@@ -27,4 +27,12 @@ public class AssemblerState implements Serializable {
 	public List<ProductPart> getStoredParts() {
 		return storedParts;
 	}
+
+	@Override
+	public String toString() {
+		return "AssemblerState{" +
+				"currentPlans=" + currentPlans +
+				", storedParts=" + storedParts +
+				'}';
+	}
 }

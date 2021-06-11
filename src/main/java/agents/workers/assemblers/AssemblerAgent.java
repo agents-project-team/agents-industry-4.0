@@ -113,7 +113,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 			if (parts.size() > 0) {
 				Logger.info(getLocalName() + " is assembling part");
 
-				doWait(SimulationConfig.SECONDS_TO_ASSEMBLE_FOR(assemblerType) * 1000);
+				doWait((long) (SimulationConfig.SECONDS_TO_ASSEMBLE_FOR(assemblerType) * 1000));
 
 				sendParts(parts);
 				plan.decreaseAllAmounts();

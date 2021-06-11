@@ -12,12 +12,11 @@ import jade.lang.acl.ACLMessage;
 import jade.wrapper.ControllerException;
 import java.util.Date;
 import java.util.Random;
+import static agents.configs.SimulationConfig.FAILURE_RATE;
 
 public abstract class Worker<T> extends Agent {
 
 	private static Date lastFailTime = new Date();
-
-	private static int FAILURE_RATE = 7; // %
 
 	private AID managerId;
 
@@ -53,7 +52,6 @@ public abstract class Worker<T> extends Agent {
 		var iAmDeadMessage = new ACLMessage();
 		iAmDeadMessage.addReceiver(managerId);
 		iAmDeadMessage.setContent(JsonConverter.toJsonString(getUnfinishedTask()));
-		Logger.info(JsonConverter.toJsonString(getUnfinishedTask()));
 		iAmDeadMessage.setPerformative(ACLMessage.CANCEL);
 		send(iAmDeadMessage);
 	}

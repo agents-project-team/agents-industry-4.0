@@ -49,7 +49,7 @@ public class MachineAgent extends Worker<PartPlan> {
 
 						Logger.info(getLocalName() + " is creating a part");
 
-						doWait(currentPlan.getSeconds() * 1000);
+						doWait((long) (currentPlan.getSeconds() * 1000));
 
 						ProductPart createdPart = new ProductPart(plan.getPartType(), plan.getId());
 

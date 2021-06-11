@@ -82,4 +82,12 @@ public class ProductOrder {
 	public void setOrderStatus(OrderStatus orderStatus) {
 		this.orderStatus = orderStatus;
 	}
+
+	@Override
+	public String toString() {
+		return "PO{" +
+				"orderId=" + orderId +
+				", productAmount=" + productAmount +
+				'}';
+	}
 }

@@ -1,5 +1,6 @@
 package agents.utils;
 
+import agents.configs.SimulationConfig;
 import java.util.Arrays;
 
 public class Logger {
@@ -9,21 +10,25 @@ public class Logger {
 	private static boolean FINISHED_WITH_NEW_LINE = false;
 
 	public static void info(String message) {
+		if (SimulationConfig.DISABLE_LOGS) return;
 		System.out.println("[INFO] : " + message);
 		FINISHED_WITH_NEW_LINE = false;
 	}
 
 	public static void process(String message) {
+		if (SimulationConfig.DISABLE_LOGS) return;
 		System.out.println("[PROCESS] : " + message);
 		FINISHED_WITH_NEW_LINE = false;
 	}
 
 	public static void supervisor(String message) {
+		if (SimulationConfig.DISABLE_LOGS) return;
 		System.out.println("[SUPERVISOR] : " + message);
 		FINISHED_WITH_NEW_LINE = false;
 	}
 
 	public static void breaks(String message) {
+		if (SimulationConfig.DISABLE_LOGS) return;
 		int messageLength = message.length();
 		char[] pad = new char[(ROW_LENGTH - messageLength + 4) / 2];
 		StringBuilder stringBuilder = new StringBuilder();
@@ -42,6 +47,7 @@ public class Logger {
 	}
 
 	public static void summary(String message, boolean centered) {
+		if (SimulationConfig.DISABLE_LOGS) return;
 		int messageLength = message.length();
 		char[] frame = new char[ROW_LENGTH + 8];
 		StringBuilder stringBuilder = new StringBuilder();
