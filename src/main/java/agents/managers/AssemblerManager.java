@@ -193,15 +193,6 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		return null;
 	}
 
-	private static AssemblerType getAssemblerKey(Map<AssemblerType, AID> map, AID value) {
-		for (AssemblerType key : map.keySet()) {
-			if (value.getLocalName().contains(map.get(key).getLocalName())) {
-				return key;
-			}
-		}
-		return null;
-	}
-
 	private AID startAssemblerAgent(AssemblerType type) {
 		ContainerController cc = getContainerController();
 		try {

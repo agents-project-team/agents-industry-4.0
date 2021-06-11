@@ -15,6 +15,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import java.util.Arrays;
+import java.util.Date;
 
 public class MachineAgent extends Worker<PartPlan> {
 
@@ -25,8 +26,6 @@ public class MachineAgent extends Worker<PartPlan> {
 	private int numberOfDetails;
 
 	private AID assemblerId;
-
-	private int seconds;
 
 	private PartPlan currentPlan;
 
@@ -50,7 +49,7 @@ public class MachineAgent extends Worker<PartPlan> {
 
 						Logger.info(getLocalName() + " is creating a part");
 
-						doWait(2000);
+						doWait(currentPlan.getSeconds() * 1000);
 
 						ProductPart createdPart = new ProductPart(plan.getPartType(), plan.getId());
 

@@ -1,8 +1,10 @@
 package agents.product;
+import agents.configs.SimulationConfig;
 import agents.workers.machines.MachineType;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 //Blueprint class
 public class ProductPlan {
@@ -36,19 +38,19 @@ public class ProductPlan {
         for(String var : types) {
             switch (var.charAt(0)) {
                 case 'A':
-					planParts.put(MachineType.SurfaceFabric, new PartPlan(this.Id, var.substring(1), this.amount));
+					planParts.put(MachineType.SurfaceFabric, new PartPlan(this.Id, var.substring(1), this.amount, SimulationConfig.SECONDS_TO_CREATE_SURFACE_FABRIC));
                     break;
                 case 'B':
-					planParts.put(MachineType.InnerFabric, new PartPlan(this.Id, var.substring(1), this.amount));
+					planParts.put(MachineType.InnerFabric, new PartPlan(this.Id, var.substring(1), this.amount, SimulationConfig.SECONDS_TO_CREATE_INNER_FABRIC));
                     break;
                 case 'C':
-					planParts.put(MachineType.DetailFabric, new PartPlan(this.Id, var.substring(1), this.amount));
+					planParts.put(MachineType.DetailFabric, new PartPlan(this.Id, var.substring(1), this.amount, SimulationConfig.SECONDS_TO_CREATE_DETAIL_FABRIC));
                     break;
                 case 'D':
-					planParts.put(MachineType.Sole, new PartPlan(this.Id, var.substring(1), this.amount));
+					planParts.put(MachineType.Sole, new PartPlan(this.Id, var.substring(1), this.amount, SimulationConfig.SECONDS_TO_CREATE_SOLE));
                     break;
                 case 'E':
-					planParts.put(MachineType.Outsole, new PartPlan(this.Id, var.substring(1), this.amount));
+					planParts.put(MachineType.Outsole, new PartPlan(this.Id, var.substring(1), this.amount, SimulationConfig.SECONDS_TO_CREATE_OUTSOLE));
                     break;
             }
         }
@@ -75,6 +77,7 @@ public class ProductPlan {
 		for(PartPlan p : planParts.values()){
 			p.decreaseCurrentAmount();
 		}
+
 		this.amount--;
 	}
 

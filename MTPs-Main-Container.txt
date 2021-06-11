@@ -1,1 +1,1 @@
-http://asset-684:7778/acc
+http://asset-684.mshome.net:7778/acc

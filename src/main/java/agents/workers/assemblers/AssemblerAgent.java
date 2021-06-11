@@ -1,5 +1,6 @@
 package agents.workers.assemblers;
 
+import agents.configs.SimulationConfig;
 import agents.product.PartPlan;
 import agents.product.Product;
 import agents.product.ProductPart;
@@ -37,6 +38,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 	@Override
 	public void setup() {
 		super.setup();
+		assemblerType = AssemblerType.getTypeByName(getWorkerType());
 		setupWorkerCommunicationBehaviour();
 	}
 
@@ -105,15 +107,19 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 	}
 
 	private void assembleParts() {
-		for (ProductPlan plan : currentPlans) {
+		List<ProductPlan> currentPlansCopy = new ArrayList<>(this.currentPlans);
+		for (ProductPlan plan : currentPlansCopy) {
 			List<ProductPart> parts = getStorageParts(plan);
 			if (parts.size() > 0) {
 				Logger.info(getLocalName() + " is assembling part");
 
-				doWait(2000);
+				doWait(SimulationConfig.SECONDS_TO_ASSEMBLE_FOR(assemblerType) * 1000);
 
 				sendParts(parts);
 				plan.decreaseAllAmounts();
+				if (plan.getAmount() == 0) {
+					this.currentPlans.remove(plan);
+				}
 			}
 		}
 	}
@@ -142,7 +148,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 	}
 
 	private void sendParts(List<ProductPart> parts) {
-		if (AssemblerType.getTypeByName(getWorkerType()) == AssemblerType.Final) {
+		if (assemblerType == AssemblerType.Final) {
 			if (parts.size() > 0) {
 				Product product = new Product(parts.get(0).getPartId(), 1, parts);
 				ACLMessage msgToAssemblerManager = new ACLMessage(ACLMessage.UNKNOWN);

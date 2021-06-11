@@ -17,7 +17,10 @@ public class SupervisorAgent extends Agent {
 
 	private List<ProductOrder> receivedOrders = new ArrayList<>(
 			List.of(new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 2, 4),
-					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 3, 3))
+					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 3, 3),
+					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 1, 2),
+					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 4, 1)
+			)
 	);
 
 	private List<ProductOrder> sentOrders = new ArrayList<>();
@@ -65,7 +68,6 @@ public class SupervisorAgent extends Agent {
 								.filter(ord -> ord.getOrderId() == finishedOrder.getOrderId())
 								.findFirst();
 
-						System.out.println(sentOrder.isPresent());
 						if (sentOrder.isPresent()) {
 							sentOrders.remove(sentOrder.get());
 							finishedOrders.add(sentOrder.get());

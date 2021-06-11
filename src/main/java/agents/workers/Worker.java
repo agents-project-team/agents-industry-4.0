@@ -1,5 +1,6 @@
 package agents.workers;
 
+import agents.configs.SimulationConfig;
 import agents.utils.JsonConverter;
 import agents.utils.Logger;
 import jade.core.AID;
@@ -9,11 +10,14 @@ import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.ControllerException;
+import java.util.Date;
 import java.util.Random;
 
 public abstract class Worker<T> extends Agent {
 
-	private static int FAILURE_RATE = 3; // %
+	private static Date lastFailTime = new Date();
+
+	private static int FAILURE_RATE = 7; // %
 
 	private AID managerId;
 
@@ -30,37 +34,57 @@ public abstract class Worker<T> extends Agent {
 		addBehaviour(new TickerBehaviour(this, 5000) {
 			@Override
 			protected void onTick() {
-				Random random = new Random();
-				int randomNumber = random.nextInt(100);
-				if (randomNumber < FAILURE_RATE) {
-					try {
-						String name = getAgent().getContainerController().getContainerName();
-						if (!name.contains("Backup")) {
-							Logger.breaks(getLocalName() + (getLocalName().contains("Assembler") ? "" : "Machine") + " breaks...");
+				if (shouldFailNow()) {
+					if (isNotBackupWorker()) {
+						Logger.breaks(getLocalName() + (getLocalName().contains("Assembler") ? "" : "Machine") + " breaks...");
 
-							var iAmDeadMessage = new ACLMessage();
-							iAmDeadMessage.addReceiver(managerId);
-							iAmDeadMessage.setContent(JsonConverter.toJsonString(getUnfinishedTask()));
-							iAmDeadMessage.setPerformative(ACLMessage.CANCEL);
-							send(iAmDeadMessage);
+						sendUnfinishedTasToManager();
+						deregisterIfAssembler(getAgent());
+						doDelete();
 
-							try {
-								if (getLocalName().contains("Assembler")) {
-									DFService.deregister(getAgent());
-								}
-							} catch (FIPAException e) {
-								e.printStackTrace();
-							}
-
-							doDelete();
-						}
-					} catch (ControllerException e) {
-						e.printStackTrace();
+						lastFailTime = new Date();
 					}
 				}
 			}
 		});
-    }
+	}
+
+    private void sendUnfinishedTasToManager() {
+		var iAmDeadMessage = new ACLMessage();
+		iAmDeadMessage.addReceiver(managerId);
+		iAmDeadMessage.setContent(JsonConverter.toJsonString(getUnfinishedTask()));
+		Logger.info(JsonConverter.toJsonString(getUnfinishedTask()));
+		iAmDeadMessage.setPerformative(ACLMessage.CANCEL);
+		send(iAmDeadMessage);
+	}
+
+	private boolean shouldFailNow() {
+		Random random = new Random();
+		return random.nextInt(100) < FAILURE_RATE && isReasonableTime();
+	}
+
+    private boolean isReasonableTime() {
+    	return (new Date().getTime() - lastFailTime.getTime()) > (SimulationConfig.SECONDS_TO_NEXT_POSSIBLE_FAILURE * 1000);
+	}
+
+	private void deregisterIfAssembler(Agent agent) {
+		try {
+			if (getLocalName().contains("Assembler")) {
+				DFService.deregister(agent);
+			}
+		} catch (FIPAException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private boolean isNotBackupWorker(){
+		try {
+			return !this.getContainerController().getContainerName().contains("Backup");
+		} catch (ControllerException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
 
 	public T getUnfinishedTask() {
 		return null;

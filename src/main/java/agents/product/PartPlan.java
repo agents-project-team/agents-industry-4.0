@@ -6,14 +6,16 @@ public class PartPlan {
     private int totalAmount;
     private int currentAmount;
     private String partType;
+    private int seconds;
 
-    public PartPlan() { }
+	public PartPlan() { }
 
-    public PartPlan(int id, String partType, int totalAmount){
+    public PartPlan(int id, String partType, int totalAmount, int seconds){
         this.Id = id;
         this.partType = partType;
         this.totalAmount = totalAmount;
         this.currentAmount = totalAmount;
+        this.seconds = seconds;
     }
 
     public PartPlan(PartPlan plan){
@@ -21,6 +23,7 @@ public class PartPlan {
         this.partType = plan.partType;
         this.totalAmount = plan.totalAmount;
         this.currentAmount = plan.currentAmount;
+        this.seconds = plan.seconds;
     }
 
     public void setId(int id){ this.Id = id; }
@@ -37,6 +40,12 @@ public class PartPlan {
     public String getPartType() { return partType; }
     public int getCurrentAmount() { return currentAmount; }
     public int getTotalAmount() { return totalAmount; }
+	public int getSeconds() {
+		return seconds;
+	}
+	public void setSeconds(int seconds) {
+		this.seconds = seconds;
+	}
 
     public void decreaseCurrentAmount(){
         this.currentAmount--;
