@@ -117,7 +117,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 
 				sendParts(parts);
 				plan.decreaseAllAmounts();
-				if (plan.getAmount() == 0) {
+				if (plan.getCurrentAmount() == 0) {
 					this.currentPlans.remove(plan);
 				}
 			}

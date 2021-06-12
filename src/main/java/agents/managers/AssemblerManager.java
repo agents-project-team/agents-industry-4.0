@@ -65,7 +65,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 							ProductPlan plan = new ProductPlan(order);
 							sendPlanToFabricAssembler(plan);
 							sendPlanToSoleAssembler(plan);
-							sendPLanToFinalAssembler(plan);
+							sendPlanToFinalAssembler(plan);
 							currentOrders.add(order);
 						}
 					} else if (msg.getPerformative() == ACLMessage.UNKNOWN) {
@@ -124,37 +124,23 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	}
 
 	private void setupWorkingAssemblers() {
-		getWorkingMachines().put(AssemblerType.Sole, startAssemblerAgent(AssemblerType.Sole));
-		getWorkingMachines().put(AssemblerType.Final, startAssemblerAgent(AssemblerType.Final));
-		getWorkingMachines().put(AssemblerType.Fabric, startAssemblerAgent(AssemblerType.Fabric));
+		int assemblerTypes = 3;
+		for(int i = 0; i < assemblerTypes; i++){
+			getWorkingMachines().put(AssemblerType.valueOf(i), startAssemblerAgent(AssemblerType.valueOf(i)));
+		}
 	}
 
 	private void setupSpareAssemblers() {
 		ContainerController cc = startBackupContainer();
-
-		getSpareMachines().put(AssemblerType.Sole, new ArrayList<>(
-				Arrays.asList(
-						startBackupAssemblerAgent(AssemblerType.Sole + "1", cc, AssemblerType.Sole),
-						startBackupAssemblerAgent(AssemblerType.Sole + "2", cc, AssemblerType.Sole),
-						startBackupAssemblerAgent(AssemblerType.Sole + "3", cc, AssemblerType.Sole)
-				)
-		));
-
-		getSpareMachines().put(AssemblerType.Fabric, new ArrayList<>(
-				Arrays.asList(
-						startBackupAssemblerAgent(AssemblerType.Fabric + "1", cc, AssemblerType.Fabric),
-						startBackupAssemblerAgent(AssemblerType.Fabric + "2", cc, AssemblerType.Fabric),
-						startBackupAssemblerAgent(AssemblerType.Fabric + "3", cc, AssemblerType.Fabric)
-				)
-		));
-
-		getSpareMachines().put(AssemblerType.Final, new ArrayList<>(
-				Arrays.asList(
-						startBackupAssemblerAgent(AssemblerType.Final + "1", cc, AssemblerType.Final),
-						startBackupAssemblerAgent(AssemblerType.Final + "2", cc, AssemblerType.Final),
-						startBackupAssemblerAgent(AssemblerType.Final + "3", cc, AssemblerType.Final)
-				)
-		));
+		int assemblerTypes = 3;
+		int backupAmount = 3;
+		for(int i = 0; i < assemblerTypes; i++){
+			List<AID> tmpAssemblers = new ArrayList<>();
+			for(int j = 1; j < backupAmount+1; j++){
+				tmpAssemblers.add(startBackupAssemblerAgent(j, AssemblerType.valueOf(i), cc));
+			}
+			getSpareMachines().put(AssemblerType.valueOf(i), tmpAssemblers);
+		}
 	}
 
 	@Override
@@ -203,9 +189,10 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		}
 	}
 
-	private AID startBackupAssemblerAgent(String name, ContainerController cc, AssemblerType type) {
+	private AID startBackupAssemblerAgent(int backupNumber, AssemblerType type,  ContainerController cc) {
+		String name = "AssemblerBackup"+type.toString()+backupNumber;
 		try {
-			AgentController ac = cc.createNewAgent("AssemblerBackup" + name, "agents.workers.assemblers.AssemblerAgent",
+			AgentController ac = cc.createNewAgent(name, "agents.workers.assemblers.AssemblerAgent",
 					new Object[]{getAID(), type.toString()});
 			ac.start();
 			return new AID(ac.getName(), AID.ISGUID);
@@ -243,7 +230,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		send(msgToSoleAssembler);
 	}
 
-	private void sendPLanToFinalAssembler(ProductPlan plan) {
+	private void sendPlanToFinalAssembler(ProductPlan plan) {
 		ACLMessage msgToFinalAssembler = new ACLMessage(ACLMessage.INFORM);
 		msgToFinalAssembler.setContent(JsonConverter.toJsonString(plan));
 		msgToFinalAssembler.addReceiver(workingAssemblers.get(AssemblerType.Final));

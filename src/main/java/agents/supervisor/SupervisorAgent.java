@@ -19,13 +19,13 @@ public class SupervisorAgent extends Agent {
 			List.of(new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 2, 4),
 					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 3, 3),
 					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 1, 2),
-					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 4, 1)
+					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 2, 1)
 			)
 	);
 
-	private List<ProductOrder> sentOrders = new ArrayList<>();
+	private final List<ProductOrder> sentOrders = new ArrayList<>();
 
-	private List<ProductOrder> finishedOrders = new ArrayList<>();
+	private final List<ProductOrder> finishedOrders = new ArrayList<>();
 
 	private AID machineManager;
 
@@ -129,10 +129,6 @@ public class SupervisorAgent extends Agent {
 
 	public void setReceivedOrders(List<ProductOrder> orders) {
 		receivedOrders = orders;
-	}
-
-	public void setSentOrders(List<ProductOrder> orders) {
-		sentOrders = orders;
 	}
 
 	public AID getMachineManager() {

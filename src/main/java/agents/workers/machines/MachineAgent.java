@@ -19,14 +19,6 @@ import java.util.Date;
 
 public class MachineAgent extends Worker<PartPlan> {
 
-	private String customState;
-
-	private Object bluePrint;
-
-	private int numberOfDetails;
-
-	private AID assemblerId;
-
 	private PartPlan currentPlan;
 
 	@Override

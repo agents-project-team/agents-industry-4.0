@@ -14,24 +14,19 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import javax.crypto.Mac;
+import java.util.*;
 
 public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
 	private AID supervisor;
 
-	private List<ProductPlan> currentPlans = new ArrayList<>();
+	private final List<ProductPlan> currentPlans = new ArrayList<>();
 
-	private List<ProductPlan> finishedPlans = new ArrayList<>();
+	private final Map<MachineType, AID> workingMachines = new HashMap<>();
 
-	private Map<MachineType, AID> workingMachines = new HashMap<>();
-
-	private Map<MachineType, List<AID>> spareMachines = new HashMap<>();
+	private final Map<MachineType, List<AID>> spareMachines = new HashMap<>();
 
 	@Override
 	protected void setup() {
@@ -64,7 +59,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 									send(msgToWorker);
 								}
 							}
-							addCurrentPlan(plan);
+							addNewPlan(plan);
 						} else if (msg.getProtocol().equals("FTASK")) {
 							PartPlan responsePlan = JsonConverter.fromJsonString(msg.getContent(), PartPlan.class);
 							MachineType key = getKey(workingMachines, msg.getSender());
@@ -74,6 +69,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 									plan.decreasePartPlanAmount(key);
 								}
 							}
+							currentPlans.removeIf(plan -> plan.getStatus() == PlanStatus.Completed);
 
 							PartPlan highestPartPlan = getHighestPriorityPart(key);
 							if (highestPartPlan != null) {
@@ -124,55 +120,23 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 	}
 
 	private void setupWorkingMachines() {
-		getWorkingMachines().put(MachineType.Sole, startWorkerAgent(MachineType.Sole));
-		getWorkingMachines().put(MachineType.DetailFabric, startWorkerAgent(MachineType.DetailFabric));
-		getWorkingMachines().put(MachineType.InnerFabric, startWorkerAgent(MachineType.InnerFabric));
-		getWorkingMachines().put(MachineType.Outsole, startWorkerAgent(MachineType.Outsole));
-		getWorkingMachines().put(MachineType.SurfaceFabric, startWorkerAgent(MachineType.SurfaceFabric));
+		int machineTypes = 5;
+		for(int i = 0; i < machineTypes; i++){
+			getWorkingMachines().put(MachineType.valueOf(i), startWorkerAgent(MachineType.valueOf(i)));
+		}
 	}
 
 	private void setupSpareMachines() {
 		ContainerController cc = startBackupContainer();
-
-		getSpareMachines().put(MachineType.Sole, new ArrayList<>(
-				Arrays.asList(
-						startBackupWorkerAgent(MachineType.Sole + "1", cc),
-						startBackupWorkerAgent(MachineType.Sole + "2", cc),
-						startBackupWorkerAgent(MachineType.Sole + "3", cc)
-				)
-		));
-
-		getSpareMachines().put(MachineType.DetailFabric, new ArrayList<>(
-				Arrays.asList(
-						startBackupWorkerAgent(MachineType.DetailFabric + "1", cc),
-						startBackupWorkerAgent(MachineType.DetailFabric + "2", cc),
-						startBackupWorkerAgent(MachineType.DetailFabric + "3", cc)
-				)
-		));
-
-		getSpareMachines().put(MachineType.InnerFabric, new ArrayList<>(
-				Arrays.asList(
-						startBackupWorkerAgent(MachineType.InnerFabric + "1", cc),
-						startBackupWorkerAgent(MachineType.InnerFabric + "2", cc),
-						startBackupWorkerAgent(MachineType.InnerFabric + "3", cc)
-				)
-		));
-
-		getSpareMachines().put(MachineType.Outsole, new ArrayList<>(
-				Arrays.asList(
-						startBackupWorkerAgent(MachineType.Outsole + "1", cc),
-						startBackupWorkerAgent(MachineType.Outsole + "2", cc),
-						startBackupWorkerAgent(MachineType.Outsole + "3", cc)
-				)
-		));
-
-		getSpareMachines().put(MachineType.SurfaceFabric, new ArrayList<>(
-				Arrays.asList(
-						startBackupWorkerAgent(MachineType.SurfaceFabric + "1", cc),
-						startBackupWorkerAgent(MachineType.SurfaceFabric + "2", cc),
-						startBackupWorkerAgent(MachineType.SurfaceFabric + "3", cc)
-				)
-		));
+		int machineTypes = 5;
+		int backupAmount = 3;
+		for(int i = 0; i < machineTypes; i++){
+			List<AID> tmpMachines = new ArrayList<>();
+			for(int j = 1; j < backupAmount+1; j++){
+				tmpMachines.add(startBackupWorkerAgent(j, MachineType.valueOf(i), cc));
+			}
+			getSpareMachines().put(MachineType.valueOf(i), tmpMachines);
+		}
 	}
 
 	private ContainerController startBackupContainer() {
@@ -210,9 +174,10 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 		}
 	}
 
-	private AID startBackupWorkerAgent(String name, ContainerController cc) {
+	private AID startBackupWorkerAgent(int backupNumber, MachineType type, ContainerController cc) {
+		String name = "Backup"+type.toString()+backupNumber;
 		try {
-			AgentController ac = cc.createNewAgent("Backup" + name, "agents.workers.machines.MachineAgent", new Object[]{getAID(), "Backup" + name});
+			AgentController ac = cc.createNewAgent(name, "agents.workers.machines.MachineAgent", new Object[]{getAID(), type.toString()});
 			ac.start();
 			return new AID(ac.getName(), AID.ISGUID);
 		} catch (Exception e) {
@@ -235,18 +200,6 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 		return null;
 	}
 
-	private ProductPlan getHighestPriorityPlan() {
-		ProductPlan plan = null;
-		int maxPriority = 0;
-		for(var p : currentPlans){
-			if(p.getPriority() > maxPriority){
-				maxPriority = p.getPriority();
-				plan = p;
-			}
-		}
-		return plan;
-	}
-
 	private PartPlan getHighestPriorityPart(MachineType key){
 		return currentPlans.stream()
 				.map(plan -> plan.getPlanParts().get(key))
@@ -256,7 +209,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
 	}
 
-	private void addCurrentPlan(ProductPlan plan) {
+	private void addNewPlan(ProductPlan plan) {
 		currentPlans.add(plan);
 		currentPlans.sort(Comparator.comparing(ProductPlan::getPriority, Comparator.reverseOrder()));
 	}
