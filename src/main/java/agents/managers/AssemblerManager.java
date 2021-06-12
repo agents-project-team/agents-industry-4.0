@@ -73,13 +73,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 							Logger.info(getLocalName() + " has received product");
 
 							Product product = JsonConverter.fromJsonString(msg.getContent(), Product.class);
-
-							if (!finishedProducts.isEmpty()) {
-								finishedProducts.get(0).increaseAmount(1);
-							} else {
-								finishedProducts.add(product);
-							}
-							finishedProductsOperation();
+							finishedProductsOperation(product);
 						}
 					} else if (msg.getPerformative() == ACLMessage.CANCEL) {
 						AID deadMachine = msg.getSender();
@@ -211,6 +205,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 			}
 		}
 		ACLMessage msgToFabricAssembler = new ACLMessage(ACLMessage.INFORM);
+		msgToFabricAssembler.setProtocol("PPLAN");
 		msgToFabricAssembler.setContent(JsonConverter.toJsonString(fabricPlan));
 		msgToFabricAssembler.addReceiver(workingAssemblers.get(AssemblerType.Fabric));
 		send(msgToFabricAssembler);
@@ -225,6 +220,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 			}
 		}
 		ACLMessage msgToSoleAssembler = new ACLMessage(ACLMessage.INFORM);
+		msgToSoleAssembler.setProtocol("PPLAN");
 		msgToSoleAssembler.setContent(JsonConverter.toJsonString(solePlan));
 		msgToSoleAssembler.addReceiver(workingAssemblers.get(AssemblerType.Sole));
 		send(msgToSoleAssembler);
@@ -232,12 +228,35 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 
 	private void sendPlanToFinalAssembler(ProductPlan plan) {
 		ACLMessage msgToFinalAssembler = new ACLMessage(ACLMessage.INFORM);
+		msgToFinalAssembler.setProtocol("PPLAN");
 		msgToFinalAssembler.setContent(JsonConverter.toJsonString(plan));
 		msgToFinalAssembler.addReceiver(workingAssemblers.get(AssemblerType.Final));
 		send(msgToFinalAssembler);
 	}
 
-	private void finishedProductsOperation() {
+	private void finishedProductsOperation(Product product) {
+		//Add product or increase its amount in the list
+		int index = getProductIndex(product.getProductId());
+		if(index < 0){
+			finishedProducts.add(product);
+		}else{
+			finishedProducts.get(index).increaseAmount(1);
+		}
+		index = getProductIndex(product.getProductId());
+		int planIndex = getProductPlanIndex(product.getProductId());
+		if(planIndex != -1) {
+			if(finishedProducts.get(index).getProductAmount() == currentOrders.get(planIndex).getProductAmount()){
+				//Send product and remove from plans(not implemented)
+				System.out.println(currentOrders.get(planIndex).toString());
+				System.out.println(finishedProducts.get(index).toString());
+				notifyFinishedTask(currentOrders.get(planIndex));
+				currentOrders.remove(planIndex);
+				finishedProducts.remove(index);
+			}
+		}
+	}
+
+	private void finishedProductsOperation(){
 		currentOrders.sort(Comparator.comparing(ProductOrder::getOrderPriority, Comparator.reverseOrder()));
 
 		ProductOrder highestPriorityOrder = currentOrders.get(0);
@@ -259,6 +278,28 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		msgToSupervisor.setContent(JsonConverter.toJsonString(order));
 		send(msgToSupervisor);
 		Logger.info(getLocalName() + " has sent a order to supervisor");
+	}
+
+	private int getProductIndex(int prodId){
+		if(!finishedProducts.isEmpty()){
+			int index = 0;
+			for(Product product : finishedProducts){
+				if(product.getProductId() == prodId) return index;
+				index++;
+			}
+		}
+		return -1;
+	}
+
+	private int getProductPlanIndex(int prodId){
+		if(!finishedProducts.isEmpty()){
+			int index = 0;
+			for(Product product : finishedProducts){
+				if(product.getProductId() == prodId) return index;
+				index++;
+			}
+		}
+		return -1;
 	}
 
 	private void addAgentToRegistry(AID agent, AssemblerType type) {

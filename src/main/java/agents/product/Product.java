@@ -1,6 +1,7 @@
 package agents.product;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Product {
@@ -31,9 +32,15 @@ public class Product {
 
 	@Override
 	public String toString() {
+        Collections.sort(productParts, (part1, part2) -> part1.getType().compareTo(part2.getType()));
+        String parts = "";
+        for(ProductPart part : productParts){
+            parts = parts + part.getType() + " ";
+        }
 		return "P{" +
 				"productId=" + productId +
 				", productAmount=" + productAmount +
+                ", parts=" + parts +
 				'}';
 	}
 }

@@ -46,19 +46,19 @@ public class ProductPlan {
         for(String var : types) {
             switch (var.charAt(0)) {
                 case 'A':
-					planParts.put(MachineType.SurfaceFabric, new PartPlan(this.Id, var.substring(1), this.totalAmount, SimulationConfig.SECONDS_TO_CREATE_SURFACE_FABRIC));
+					planParts.put(MachineType.SurfaceFabric, new PartPlan(this.Id, var, this.totalAmount, SimulationConfig.SECONDS_TO_CREATE_SURFACE_FABRIC));
                     break;
                 case 'B':
-					planParts.put(MachineType.InnerFabric, new PartPlan(this.Id, var.substring(1), this.totalAmount, SimulationConfig.SECONDS_TO_CREATE_INNER_FABRIC));
+					planParts.put(MachineType.InnerFabric, new PartPlan(this.Id, var, this.totalAmount, SimulationConfig.SECONDS_TO_CREATE_INNER_FABRIC));
                     break;
                 case 'C':
-					planParts.put(MachineType.DetailFabric, new PartPlan(this.Id, var.substring(1), this.totalAmount, SimulationConfig.SECONDS_TO_CREATE_DETAIL_FABRIC));
+					planParts.put(MachineType.DetailFabric, new PartPlan(this.Id, var, this.totalAmount, SimulationConfig.SECONDS_TO_CREATE_DETAIL_FABRIC));
                     break;
                 case 'D':
-					planParts.put(MachineType.Sole, new PartPlan(this.Id, var.substring(1), this.totalAmount, SimulationConfig.SECONDS_TO_CREATE_SOLE));
+					planParts.put(MachineType.Sole, new PartPlan(this.Id, var, this.totalAmount, SimulationConfig.SECONDS_TO_CREATE_SOLE));
                     break;
                 case 'E':
-					planParts.put(MachineType.Outsole, new PartPlan(this.Id, var.substring(1), this.totalAmount, SimulationConfig.SECONDS_TO_CREATE_OUTSOLE));
+					planParts.put(MachineType.Outsole, new PartPlan(this.Id, var, this.totalAmount, SimulationConfig.SECONDS_TO_CREATE_OUTSOLE));
                     break;
             }
         }

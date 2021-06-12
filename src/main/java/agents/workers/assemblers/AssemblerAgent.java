@@ -25,11 +25,7 @@ import java.util.Set;
 
 public class AssemblerAgent extends Worker<AssemblerState> {
 
-	private Object blueprint;
-
 	private AssemblerType assemblerType;
-
-	private AID nextAssembler;
 
 	private List<ProductPlan> currentPlans = new ArrayList<>();
 
@@ -49,7 +45,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 				ACLMessage msg = receive();
 				if (msg != null) {
 					if (msg.getPerformative() == ACLMessage.INFORM) {
-						if (!msg.getSender().getLocalName().equals("df")) {
+						if(msg.getProtocol().equals("PPLAN")) {
 							Logger.info(getLocalName() + " has received the plan!");
 
 							currentPlans.add(JsonConverter.fromJsonString(msg.getContent(), ProductPlan.class));
@@ -115,7 +111,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 
 				doWait((long) (SimulationConfig.SECONDS_TO_ASSEMBLE_FOR(assemblerType) * 1000));
 
-				sendParts(parts);
+				sendParts(parts, plan.getId());
 				plan.decreaseAllAmounts();
 				if (plan.getCurrentAmount() == 0) {
 					this.currentPlans.remove(plan);
@@ -147,16 +143,14 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 		return partsToSend;
 	}
 
-	private void sendParts(List<ProductPart> parts) {
+	private void sendParts(List<ProductPart> parts, int planId) {
 		if (assemblerType == AssemblerType.Final) {
-			if (parts.size() > 0) {
-				Product product = new Product(parts.get(0).getPartId(), 1, parts);
-				ACLMessage msgToAssemblerManager = new ACLMessage(ACLMessage.UNKNOWN);
-				msgToAssemblerManager.setProtocol("FPROD");
-				msgToAssemblerManager.addReceiver(getManagerId());
-				msgToAssemblerManager.setContent(JsonConverter.toJsonString(product));
-				send(msgToAssemblerManager);
-			}
+			Product product = new Product(planId, 1, parts);
+			ACLMessage msgToAssemblerManager = new ACLMessage(ACLMessage.UNKNOWN);
+			msgToAssemblerManager.setProtocol("FPROD");
+			msgToAssemblerManager.addReceiver(getManagerId());
+			msgToAssemblerManager.setContent(JsonConverter.toJsonString(product));
+			send(msgToAssemblerManager);
 		} else {
 			AID receiverAID = getReceiverAID(AssemblerType.Final);
 			for (ProductPart p : parts) {

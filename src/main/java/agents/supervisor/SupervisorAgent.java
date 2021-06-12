@@ -16,10 +16,10 @@ import java.util.Optional;
 public class SupervisorAgent extends Agent {
 
 	private List<ProductOrder> receivedOrders = new ArrayList<>(
-			List.of(new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 2, 4),
-					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 3, 3),
-					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 1, 2),
-					new ProductOrder("AXX1-BXX2-CXX3-DXX4-EXX1", 2, 1)
+			List.of(new ProductOrder("AXY6-BZC8-C999-DB31-EGH6", 80, 1),
+					new ProductOrder("ACCC-B980-CBF3-DAD3-EPH8", 10, 3),
+					new ProductOrder("ADSE-B8H6-CZZ2-DO8J-E864", 30, 4),
+					new ProductOrder("A892-BBS5-CND3-DP87-EHG7", 30, 2)
 			)
 	);
 
@@ -38,7 +38,7 @@ public class SupervisorAgent extends Agent {
 
 		doWait(2000);
 
-		addBehaviour(new TickerBehaviour(this, 2000) {
+		addBehaviour(new TickerBehaviour(this, 10000) {
 			@Override
 			protected void onTick() {
 				if (receivedOrders.size() > 0) {
