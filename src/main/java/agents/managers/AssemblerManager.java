@@ -1,5 +1,6 @@
 package agents.managers;
 
+import agents.product.PartPlan;
 import agents.product.Product;
 import agents.product.ProductOrder;
 import agents.product.ProductPlan;
@@ -35,6 +36,8 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 
 	private AID supervisor;
 
+	private final Map<AssemblerType, AssemblerState> unfinishedTasks = new HashMap<>();
+
 	private final List<ProductOrder> currentOrders = new ArrayList<>();
 
 	private final List<Product> finishedProducts = new ArrayList<>();
@@ -67,6 +70,16 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 							sendPlanToSoleAssembler(plan);
 							sendPlanToFinalAssembler(plan);
 							currentOrders.add(order);
+						} else if (msg.getProtocol().equals("RTASK")){
+							AssemblerType key = AssemblerType.getByName(msg.getContent());
+							AssemblerState assemblerState = unfinishedTasks.get(key);
+							Logger.process("Sending unfinished task to a backup " + key + " assembler");
+
+							ACLMessage unfinishedPartMessage = new ACLMessage(ACLMessage.REQUEST);
+							unfinishedPartMessage.addReceiver(workingAssemblers.get(key));
+							unfinishedPartMessage.setContent(JsonConverter.toJsonString(assemblerState));
+							send(unfinishedPartMessage);
+							unfinishedTasks.remove(key);
 						}
 					} else if (msg.getPerformative() == ACLMessage.UNKNOWN) {
 						if (msg.getProtocol().equals("FPROD")) {
@@ -79,33 +92,27 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 					} else if (msg.getPerformative() == ACLMessage.CANCEL) {
 						AID deadMachine = msg.getSender();
 						AssemblerType key = getKey(workingAssemblers, deadMachine);
-						AssemblerState unfinishedAssemblerState = null;
 
-						if (msg.getContent() != null) {
-							unfinishedAssemblerState = JsonConverter.fromJsonString(msg.getContent(), AssemblerState.class);
+						if(msg.getContent() == null || key == null) return;
+
+						AssemblerState unfinishedAssemblerState = JsonConverter.fromJsonString(msg.getContent(), AssemblerState.class);
+						unfinishedTasks.put(key, unfinishedAssemblerState);
+						if (spareAssemblers.get(key).isEmpty()) {
+							//Handler for no more assemblers
+							Logger.info("No more " + key + " assemblers left.");
+							return;
 						}
 
-						if (key != null) {
-							var replacementMessage = new ACLMessage();
-							if (spareAssemblers.get(key).isEmpty()) {
-								Logger.info("No more " + key + " assemblers left.");
-								return;
-							}
+						ACLMessage replacementMessage = new ACLMessage(ACLMessage.INFORM);
+						replacementMessage.setProtocol("ACT");
+						replacementMessage.addReceiver(spareAssemblers.get(key).get(0));
+						send(replacementMessage);
 
-							replacementMessage.addReceiver(spareAssemblers.get(key).get(0));
-							replacementMessage.setPerformative(ACLMessage.PROPOSE);
-							send(replacementMessage);
-
-							Logger.process("Sending unfinished task to a backup " + key + " assembler");
-
-							var unfinishedPartMessage = new ACLMessage(ACLMessage.REQUEST);
-							unfinishedPartMessage.addReceiver(spareAssemblers.get(key).get(0));
-							unfinishedPartMessage.setContent(JsonConverter.toJsonString(unfinishedAssemblerState));
-							send(unfinishedPartMessage);
-
-							workingAssemblers.computeIfPresent(key, (e, a) -> spareAssemblers.get(key).get(0));
-							spareAssemblers.get(key).remove(0);
-						}
+						//Swap Machines
+						AID replacementAID = spareAssemblers.get(key).get(0);
+						AID oldAID = workingAssemblers.get(key);
+						spareAssemblers.get(key).remove(0);
+						workingAssemblers.replace(key, oldAID, replacementAID);
 					}
 				} else {
 					block();
@@ -185,7 +192,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	}
 
 	private AID startBackupAssemblerAgent(int backupNumber, AssemblerType type,  ContainerController cc) {
-		String name = "AssemblerBackup"+type.toString()+backupNumber;
+		String name = "BackupAssembler"+type.toString()+backupNumber;
 		try {
 			AgentController ac = cc.createNewAgent(name, "agents.workers.assemblers.AssemblerAgent",
 					new Object[]{getAID(), type.toString()});
@@ -281,22 +288,22 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		Logger.info(getLocalName() + " has sent a order to supervisor");
 	}
 
-	private int getProductIndex(int prodId){
+	private int getProductIndex(String newProdId){
 		if(!finishedProducts.isEmpty()){
 			int index = 0;
-			for(Product product : finishedProducts){
-				if(product.getProductId() == prodId) return index;
+			for(Product finishedProduct : finishedProducts){
+				if(finishedProduct.getProductId().equals(newProdId)) return index;
 				index++;
 			}
 		}
 		return -1;
 	}
 
-	private int getProductPlanIndex(int prodId){
-		if(!finishedProducts.isEmpty()){
+	private int getProductPlanIndex(String newProdId){
+		if(!currentOrders.isEmpty()){
 			int index = 0;
-			for(Product product : finishedProducts){
-				if(product.getProductId() == prodId) return index;
+			for(ProductOrder productOrder : currentOrders){
+				if(productOrder.getProductId().equals(newProdId)) return index;
 				index++;
 			}
 		}

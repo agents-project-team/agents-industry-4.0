@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class SimulationConfig {
 
-	public static final int     FAILURE_RATE = 1;
+	public static final int     FAILURE_RATE = 3;
 
 	public static final boolean DISABLE_LOGS = false;
 

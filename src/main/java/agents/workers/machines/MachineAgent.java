@@ -46,9 +46,9 @@ public class MachineAgent extends Worker<PartPlan> {
 
 						Logger.info(getLocalName() + " is creating a part");
 
-						if(!createPart()) return;
+						if(!createProcedure()) return;
 
-						ProductPart createdPart = new ProductPart(plan.getPartType(), plan.getId());
+						ProductPart createdPart = new ProductPart(plan.getPartType());
 
 						AID receiverAssembler = getCurrentAssembler();
 						if (receiverAssembler != null) {
@@ -89,7 +89,7 @@ public class MachineAgent extends Worker<PartPlan> {
 		return getAIDFromDF(sd);
 	}
 
-	public boolean createPart(){
+	public boolean createProcedure(){
 		doWait((long) (currentPlan.getSeconds() * 1000));
 		boolean broke = breakdownProcess();
 		if(broke) return false;

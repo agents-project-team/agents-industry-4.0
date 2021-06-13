@@ -3,12 +3,13 @@ import agents.configs.SimulationConfig;
 import agents.managers.PlanStatus;
 import agents.workers.machines.MachineType;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
 //Blueprint class
-public class ProductPlan {
+public class ProductPlan implements Serializable {
 
     private PlanStatus status;
 

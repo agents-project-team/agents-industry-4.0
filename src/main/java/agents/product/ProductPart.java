@@ -1,39 +1,29 @@
 package agents.product;
 
-public class ProductPart {
+import java.io.Serializable;
 
-    private int partId;
+public class ProductPart implements Serializable {
 
-	private String type;
+	private String partId;
 
 	public ProductPart() {
 
 	}
 
-    public ProductPart(String type, int id){
-		this.partId = id;
-		this.type = type;
+    public ProductPart(String type){
+		this.partId = type;
     }
 
-	public int getPartId() {
-		return partId;
-	}
+    public String getType() { return partId; }
 
-	public void setPartId(int partId) {
+	public void setType(String partId) {
 		this.partId = partId;
-	}
-
-    public String getType() { return type; }
-
-	public void setType(String type) {
-		this.type = type;
 	}
 
 	@Override
 	public String toString() {
 		return "ProductPart{" +
-				"partId=" + partId +
-				", type='" + type + '\'' +
+				", partId='" + partId + '\'' +
 				'}';
 	}
 }

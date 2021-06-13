@@ -1,5 +1,6 @@
 package agents.workers.assemblers;
 
+import agents.product.PartPlan;
 import agents.product.ProductPart;
 import agents.product.ProductPlan;
 import java.io.Serializable;

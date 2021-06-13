@@ -79,16 +79,6 @@ public abstract class Worker<T> extends Agent {
     	return (new Date().getTime() - lastFailTime.getTime()) > (SimulationConfig.SECONDS_TO_NEXT_POSSIBLE_FAILURE * 1000);
 	}
 
-	private void deregisterIfAssembler(Agent agent) {
-		try {
-			if (getLocalName().contains("Assembler")) {
-				DFService.deregister(agent);
-			}
-		} catch (FIPAException e) {
-			e.printStackTrace();
-		}
-	}
-
 	public void registerAgent(String name){
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
@@ -157,6 +147,16 @@ public abstract class Worker<T> extends Agent {
 		msgRequestingTask.setContent(workerType);
 		msgRequestingTask.addReceiver(getManagerId());
 		send(msgRequestingTask);
+	}
+
+	private void deregisterIfAssembler(Agent agent) {
+		try {
+			if (getLocalName().contains("Assembler")) {
+				DFService.deregister(agent);
+			}
+		} catch (FIPAException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private boolean isNotBackupWorker(){
