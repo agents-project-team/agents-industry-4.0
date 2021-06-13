@@ -31,7 +31,7 @@ public enum AssemblerType {
 		return this.value;
 	}
 
-	public static AssemblerType getTypeByName(String type) {
+	public static AssemblerType getByName(String type) {
 		return Arrays.stream(values())
 				.filter(assemblerType -> assemblerType.toString().equals(type))
 				.findFirst()

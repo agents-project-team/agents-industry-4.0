@@ -46,7 +46,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	@Override
 	protected void setup() {
 		setupSupervisor();
-		setupWorkingAssemblers();
+		setupActiveAssemblers();
 		setupSpareAssemblers();
 		setupBehaviours();
 	}
@@ -73,6 +73,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 							Logger.info(getLocalName() + " has received product");
 
 							Product product = JsonConverter.fromJsonString(msg.getContent(), Product.class);
+							System.out.println(product.toString());
 							finishedProductsOperation(product);
 						}
 					} else if (msg.getPerformative() == ACLMessage.CANCEL) {
@@ -117,10 +118,10 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		supervisor = (AID) getArguments()[0];
 	}
 
-	private void setupWorkingAssemblers() {
+	private void setupActiveAssemblers() {
 		int assemblerTypes = 3;
 		for(int i = 0; i < assemblerTypes; i++){
-			getWorkingMachines().put(AssemblerType.valueOf(i), startAssemblerAgent(AssemblerType.valueOf(i)));
+			getActiveWorkers().put(AssemblerType.valueOf(i), startActiveAssemblerAgent(AssemblerType.valueOf(i)));
 		}
 	}
 
@@ -133,7 +134,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 			for(int j = 1; j < backupAmount+1; j++){
 				tmpAssemblers.add(startBackupAssemblerAgent(j, AssemblerType.valueOf(i), cc));
 			}
-			getSpareMachines().put(AssemblerType.valueOf(i), tmpAssemblers);
+			getSpareWorkers().put(AssemblerType.valueOf(i), tmpAssemblers);
 		}
 	}
 
@@ -143,12 +144,12 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	}
 
 	@Override
-	public Map<AssemblerType, AID> getWorkingMachines() {
+	public Map<AssemblerType, AID> getActiveWorkers() {
 		return workingAssemblers;
 	}
 
 	@Override
-	public Map<AssemblerType, List<AID>> getSpareMachines() {
+	public Map<AssemblerType, List<AID>> getSpareWorkers() {
 		return spareAssemblers;
 	}
 
@@ -169,14 +170,14 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		return null;
 	}
 
-	private AID startAssemblerAgent(AssemblerType type) {
+	private AID startActiveAssemblerAgent(AssemblerType type) {
 		ContainerController cc = getContainerController();
 		try {
 			AgentController ac = cc.createNewAgent("Assembler" + type.name(), "agents.workers.assemblers.AssemblerAgent",
 					new Object[]{getAID(), type.toString()});
 			ac.start();
 			AID agentID = new AID(ac.getName(), AID.ISGUID);
-			addAgentToRegistry(agentID, type);
+			sendMsgToRegisterAgent(agentID);
 			return agentID;
 		} catch (StaleProxyException e) {
 			throw new IllegalStateException();
@@ -302,17 +303,10 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		return -1;
 	}
 
-	private void addAgentToRegistry(AID agent, AssemblerType type) {
-		DFAgentDescription dfd = new DFAgentDescription();
-		dfd.setName(agent);
-		ServiceDescription sd = new ServiceDescription();
-		sd.setName(type.toString());
-		sd.setType(type.toString());
-		dfd.addServices(sd);
-		try {
-			DFService.register(this, dfd);
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
+	private void sendMsgToRegisterAgent(AID agentId){
+		ACLMessage activateMsg = new ACLMessage(ACLMessage.INFORM);
+		activateMsg.setProtocol("REG");
+		activateMsg.addReceiver(agentId);
+		send(activateMsg);
 	}
 }

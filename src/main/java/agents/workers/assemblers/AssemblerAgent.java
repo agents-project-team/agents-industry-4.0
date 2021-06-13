@@ -34,7 +34,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 	@Override
 	public void setup() {
 		super.setup();
-		assemblerType = AssemblerType.getTypeByName(getWorkerType());
+		assemblerType = AssemblerType.getByName(getWorkerType());
 		setupWorkerCommunicationBehaviour();
 	}
 
@@ -50,6 +50,8 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 
 							currentPlans.add(JsonConverter.fromJsonString(msg.getContent(), ProductPlan.class));
 							currentPlans.sort(Comparator.comparing(ProductPlan::getPriority, Comparator.reverseOrder()));
+						}else if(msg.getProtocol().equals("REG")){
+							registerAgent("Assembler");
 						}
 					} else if (msg.getPerformative() == ACLMessage.UNKNOWN) {
 						if (msg.getProtocol().equals("SPART")) {
@@ -72,8 +74,6 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 						ContainerID destination = new ContainerID();
 						destination.setName("Main-Container");
 						doMove(destination);
-
-						addAgentToRegistry();
 					}
 				} else {
 					block();
@@ -85,21 +85,6 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 	@Override
 	public AssemblerState getUnfinishedTask() {
 		return new AssemblerState(currentPlans, storedParts);
-	}
-
-	private void addAgentToRegistry() {
-		DFAgentDescription dfd = new DFAgentDescription();
-		dfd.setName(getAID());
-		AssemblerType type = AssemblerType.getTypeByName(getWorkerType());
-		ServiceDescription sd = new ServiceDescription();
-		sd.setName(type.toString());
-		sd.setType(type.toString());
-		dfd.addServices(sd);
-		try {
-			DFService.register(this, dfd);
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
 	}
 
 	private void assembleParts() {
@@ -152,31 +137,23 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 			msgToAssemblerManager.setContent(JsonConverter.toJsonString(product));
 			send(msgToAssemblerManager);
 		} else {
-			AID receiverAID = getReceiverAID(AssemblerType.Final);
-			for (ProductPart p : parts) {
-				ACLMessage partsToFinalAssembler = new ACLMessage(ACLMessage.UNKNOWN);
-				partsToFinalAssembler.setProtocol("SPART");
-				partsToFinalAssembler.setContent(JsonConverter.toJsonString(p));
-				partsToFinalAssembler.addReceiver(receiverAID);
-				send(partsToFinalAssembler);
+			AID receiverAID = getFinalAssemblerAID();
+			if(receiverAID!=null){
+				for (ProductPart p : parts) {
+					ACLMessage partsToFinalAssembler = new ACLMessage(ACLMessage.UNKNOWN);
+					partsToFinalAssembler.setProtocol("SPART");
+					partsToFinalAssembler.setContent(JsonConverter.toJsonString(p));
+					partsToFinalAssembler.addReceiver(receiverAID);
+					send(partsToFinalAssembler);
+				}
 			}
 		}
 	}
 
-	private AID getReceiverAID(AssemblerType type) {
+	private AID getFinalAssemblerAID() {
 		ServiceDescription sd = new ServiceDescription();
-		sd.setName(type.toString());
-		sd.setType(type.toString());
-		DFAgentDescription dfd = new DFAgentDescription();
-		dfd.addServices(sd);
-		try {
-			DFAgentDescription[] result = DFService.search(this, dfd);
-			if (result.length > 0) {
-				return result[0].getName();
-			}
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
-		return null;
+		sd.setName("Assembler"+AssemblerType.Final.toString());
+		sd.setType("Assembler"+AssemblerType.Final.toString());
+		return getAIDFromDF(sd);
 	}
 }

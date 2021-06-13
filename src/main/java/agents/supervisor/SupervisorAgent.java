@@ -5,6 +5,8 @@ import agents.utils.JsonConverter;
 import agents.utils.Logger;
 import jade.core.AID;
 import jade.core.Agent;
+import jade.core.Profile;
+import jade.core.ProfileImpl;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
@@ -16,10 +18,10 @@ import java.util.Optional;
 public class SupervisorAgent extends Agent {
 
 	private List<ProductOrder> receivedOrders = new ArrayList<>(
-			List.of(new ProductOrder("AXY6-BZC8-C999-DB31-EGH6", 80, 1),
+			List.of(new ProductOrder("AXY6-BZC8-C999-DB31-EGH6", 8, 1),
 					new ProductOrder("ACCC-B980-CBF3-DAD3-EPH8", 10, 3),
-					new ProductOrder("ADSE-B8H6-CZZ2-DO8J-E864", 30, 4),
-					new ProductOrder("A892-BBS5-CND3-DP87-EHG7", 30, 2)
+					new ProductOrder("ADSE-B8H6-CZZ2-DO8J-E864", 6, 4),
+					new ProductOrder("A892-BBS5-CND3-DP87-EHG7", 6, 2)
 			)
 	);
 
@@ -35,10 +37,11 @@ public class SupervisorAgent extends Agent {
 	protected void setup() {
 		machineManager = startMachineManager();
 		assemblerManager = startAssemblerManager();
+		startDeadMachineContainer();
 
 		doWait(2000);
 
-		addBehaviour(new TickerBehaviour(this, 10000) {
+		addBehaviour(new TickerBehaviour(this, 2000) {
 			@Override
 			protected void onTick() {
 				if (receivedOrders.size() > 0) {
@@ -145,5 +148,13 @@ public class SupervisorAgent extends Agent {
 
 	public List<ProductOrder> getSentOrders() {
 		return sentOrders;
+	}
+
+	private void startDeadMachineContainer(){
+		jade.core.Runtime runtime = jade.core.Runtime.instance();
+		Profile profile = new ProfileImpl();
+		profile.setParameter(Profile.CONTAINER_NAME, "DeadMachines");
+		profile.setParameter(Profile.MAIN_HOST, "localhost");
+		runtime.createAgentContainer(profile);
 	}
 }
