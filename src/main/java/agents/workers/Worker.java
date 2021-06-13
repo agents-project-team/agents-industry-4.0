@@ -26,6 +26,7 @@ public abstract class Worker<T> extends Agent {
     protected void setup() {
 		this.managerId = (AID) getArguments()[0];
 		this.workerType = (String) getArguments()[1];
+		setEnabledO2ACommunication(true, 0);
 		setShuttingDownBehaviour();
     }
 
