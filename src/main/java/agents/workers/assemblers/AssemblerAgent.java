@@ -27,6 +27,8 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 
 	private AssemblerType assemblerType;
 
+	private boolean isAlive;
+
 	private List<ProductPlan> currentPlans = new ArrayList<>();
 
 	private List<ProductPart> storedParts = new ArrayList<>();
@@ -35,6 +37,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 	public void setup() {
 		super.setup();
 		assemblerType = AssemblerType.getByName(getWorkerType());
+		isAlive = true;
 		setupWorkerCommunicationBehaviour();
 	}
 
@@ -44,42 +47,51 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 			public void action() {
 				ACLMessage msg = receive();
 				if (msg != null) {
-					if (msg.getPerformative() == ACLMessage.INFORM) {
-						if(msg.getProtocol().equals("PPLAN")) {
-							Logger.info(getLocalName() + " has received the plan!");
+					if(isAlive){
+						if (msg.getPerformative() == ACLMessage.INFORM) {
+							if(msg.getProtocol().equals("PPLAN")) {
+								Logger.info(getLocalName() + " has received the plan!");
 
-							currentPlans.add(JsonConverter.fromJsonString(msg.getContent(), ProductPlan.class));
-							currentPlans.sort(Comparator.comparing(ProductPlan::getPriority, Comparator.reverseOrder()));
-						} else if(msg.getProtocol().equals("REG")){
-							registerAgent("Assembler");
-						} else if (msg.getProtocol().equals("ACT")){
-							Logger.process(getLocalName() + " replaces broken machine.");
-							moveToMainContainer();
-							registerAgent("Assembler");
-						}
-					} else if (msg.getPerformative() == ACLMessage.UNKNOWN) {
-						if (msg.getProtocol().equals("SPART")) {
-							Logger.info(getLocalName() + " has received new part from " + msg.getSender().getLocalName());
-
-							ProductPart receivedPart = JsonConverter.fromJsonString(msg.getContent(), ProductPart.class);
-							storedParts.add(receivedPart);
-							assembleParts();
-						} else if (msg.getProtocol().equals("PPROD")){
-							Logger.info(getLocalName() + " has received new partial product from " + msg.getSender().getLocalName());
-
-							Product partialProduct = JsonConverter.fromJsonString(msg.getContent(), Product.class);
-							for(ProductPart p : partialProduct.getProductParts()){
-								storedParts.add(p);
+								currentPlans.add(JsonConverter.fromJsonString(msg.getContent(), ProductPlan.class));
+								currentPlans.sort(Comparator.comparing(ProductPlan::getPriority, Comparator.reverseOrder()));
+							} else if(msg.getProtocol().equals("REG")){
+								registerAgent("Assembler");
+							} else if (msg.getProtocol().equals("ACT")){
+								Logger.process(getLocalName() + " replaces broken machine.");
+								moveToMainContainer();
+								registerAgent("Assembler");
 							}
+						} else if (msg.getPerformative() == ACLMessage.UNKNOWN) {
+							if (msg.getProtocol().equals("SPART")) {
+								ProductPart receivedPart = JsonConverter.fromJsonString(msg.getContent(), ProductPart.class);
+								Logger.info(getLocalName() + " has received new part from " + msg.getSender().getLocalName());
+
+								storedParts.add(receivedPart);
+								assembleParts();
+							} else if (msg.getProtocol().equals("PPROD")){
+								Logger.info(getLocalName() + " has received new partial product from " + msg.getSender().getLocalName());
+
+								Product partialProduct = JsonConverter.fromJsonString(msg.getContent(), Product.class);
+								storedParts.addAll(partialProduct.getProductParts());
+								assembleParts();
+							}
+						} else if (msg.getPerformative() == ACLMessage.REQUEST) {
+							AssemblerState assemblerState = JsonConverter.fromJsonString(msg.getContent(), AssemblerState.class);
+							currentPlans = assemblerState.getCurrentPlans();
+							storedParts = assemblerState.getStoredParts();
+							Logger.info(getLocalName() + " has received unfinished parts from broken assembler");
+
 							assembleParts();
 						}
-					} else if (msg.getPerformative() == ACLMessage.REQUEST) {
-						AssemblerState assemblerState = JsonConverter.fromJsonString(msg.getContent(), AssemblerState.class);
-						currentPlans = assemblerState.getCurrentPlans();
-						storedParts = assemblerState.getStoredParts();
-						Logger.info(getLocalName() + " has received unfinished parts from broken assembler");
-
-						assembleParts();
+					}else{
+						//Reroute message to current assembler
+						System.out.println("*********************** Message Rerouted ***********************");
+						ACLMessage rerouteMsg = new ACLMessage(msg.getPerformative());
+						rerouteMsg.setProtocol(msg.getProtocol());
+						rerouteMsg.setContent(msg.getContent());
+						AID receiverAID = getAssemblerAID(assemblerType);
+						rerouteMsg.addReceiver(receiverAID);
+						send(rerouteMsg);
 					}
 				} else {
 					block();
@@ -100,7 +112,10 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 			if (parts.size() > 0) {
 				Logger.info(getLocalName() + " is assembling part");
 
-				if(!assembleProcedure()) return;
+				if(!assembleProcedure()){
+					isAlive = false;
+					return;
+				}
 
 				storedParts.removeAll(parts);
 				sendParts(parts);
@@ -140,7 +155,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 			msgToAssemblerManager.setContent(JsonConverter.toJsonString(product));
 			send(msgToAssemblerManager);
 		} else {
-			AID receiverAID = getFinalAssemblerAID();
+			AID receiverAID = getAssemblerAID(AssemblerType.Final);
 			if(receiverAID!=null){
 				Product partialProduct = new Product(1, parts);
 				ACLMessage partsToFinalAssembler = new ACLMessage(ACLMessage.UNKNOWN);
@@ -150,6 +165,13 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 				send(partsToFinalAssembler);
 			}
 		}
+	}
+
+	private AID getAssemblerAID(AssemblerType destinationType){
+		ServiceDescription sd = new ServiceDescription();
+		sd.setName("Assembler"+destinationType.toString());
+		sd.setType("Assembler"+destinationType.toString());
+		return getAIDFromDF(sd);
 	}
 
 	private AID getFinalAssemblerAID() {
