@@ -1,19 +1,20 @@
 package agents.managers;
 
+import agents.events.Event;
+import agents.events.EventType;
 import agents.product.PartPlan;
 import agents.product.ProductOrder;
 import agents.product.ProductPlan;
 import agents.utils.JsonConverter;
 import agents.utils.Logger;
 import agents.workers.machines.MachineType;
-import jade.core.AID;
-import jade.core.Agent;
-import jade.core.Profile;
-import jade.core.ProfileImpl;
+import jade.core.*;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
+import jade.wrapper.ControllerException;
+
 import java.util.*;
 
 public class MachineManager extends Agent implements Manager<AID, MachineType> {
@@ -124,19 +125,35 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
 	private void setupActiveMachines() {
 		int machineTypes = 5;
+		ContainerController cc = getContainerController();
+		String containerName = "";
+		try {
+			containerName = cc.getContainerName();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
 		for(int i = 0; i < machineTypes; i++){
 			getActiveWorkers().put(MachineType.valueOf(i), startActiveMachineAgent(MachineType.valueOf(i)));
+			Event.createEvent(new Event(EventType.AGENT_CREATED, getActiveWorkers().get(MachineType.valueOf(i)), containerName, ""));
 		}
 	}
 
 	private void setupSpareMachines() {
-		ContainerController cc = startBackupContainer();
 		int machineTypes = 5;
 		int backupAmount = 3;
+		ContainerController cc = startBackupContainer();
+		String containerName = "";
+		try {
+			containerName = cc.getContainerName();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
 		for(int i = 0; i < machineTypes; i++){
 			List<AID> tmpMachines = new ArrayList<>();
 			for(int j = 1; j < backupAmount+1; j++){
-				tmpMachines.add(startBackupMachineAgent(j, MachineType.valueOf(i), cc));
+				AID tmpBackupMachine = startBackupMachineAgent(j, MachineType.valueOf(i), cc);
+				tmpMachines.add(tmpBackupMachine);
+				Event.createEvent(new Event(EventType.AGENT_CREATED, tmpBackupMachine, containerName, ""));
 			}
 			getSpareWorkers().put(MachineType.valueOf(i), tmpMachines);
 		}

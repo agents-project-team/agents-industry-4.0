@@ -1,5 +1,7 @@
 package agents.workers.machines;
 
+import agents.events.Event;
+import agents.events.EventType;
 import agents.product.PartPlan;
 import agents.product.ProductPart;
 import agents.utils.JsonConverter;
@@ -31,6 +33,7 @@ public class MachineAgent extends Worker<PartPlan> {
 							registerAgent("Machine");
 						}else if(msg.getProtocol().equals("ACT")){
 							Logger.process(getLocalName() + " replaces broken machine");
+							Event.createEvent(new Event(EventType.AGENT_REPLACED, getAID(), getAgentCurrentContainerName(), ""));
 							moveToMainContainer();
 							registerAgent("Machine");
 						}
@@ -39,10 +42,12 @@ public class MachineAgent extends Worker<PartPlan> {
 						currentPlan = plan;
 
 						Logger.info(getLocalName() + " is creating a part");
+						Event.createEvent(new Event(EventType.PART_RECEIVED, getAID(), getAgentCurrentContainerName(), ""));
 
 						if(!createProcedure()) return;
 
 						ProductPart createdPart = new ProductPart(plan.getPartType());
+						Event.createEvent(new Event(EventType.PART_CREATED, getAID(), getAgentCurrentContainerName(), ""));
 
 						AID receiverAssembler = getCurrentAssembler();
 						if (receiverAssembler != null) {

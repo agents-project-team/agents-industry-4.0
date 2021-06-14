@@ -1,6 +1,8 @@
 package agents.workers.assemblers;
 
 import agents.configs.SimulationConfig;
+import agents.events.Event;
+import agents.events.EventType;
 import agents.product.PartPlan;
 import agents.product.Product;
 import agents.product.ProductPart;
@@ -53,6 +55,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 								registerAgent("Assembler");
 							} else if (msg.getProtocol().equals("ACT")){
 								Logger.process(getLocalName() + " replaces broken machine.");
+								Event.createEvent(new Event(EventType.AGENT_REPLACED, getAID(), getAgentCurrentContainerName(), ""));
 								moveToMainContainer();
 								registerAgent("Assembler");
 							}
@@ -60,11 +63,13 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 							if (msg.getProtocol().equals("SPART")) {
 								ProductPart receivedPart = JsonConverter.fromJsonString(msg.getContent(), ProductPart.class);
 								Logger.info(getLocalName() + " has received new part from " + msg.getSender().getLocalName());
+								Event.createEvent(new Event(EventType.PART_RECEIVED, getAID(), getAgentCurrentContainerName(), ""));
 
 								storedParts.add(receivedPart);
 								assembleParts();
 							} else if (msg.getProtocol().equals("PPROD")){
 								Logger.info(getLocalName() + " has received new partial product from " + msg.getSender().getLocalName());
+								Event.createEvent(new Event(EventType.PART_RECEIVED, getAID(), getAgentCurrentContainerName(), ""));
 
 								Product partialProduct = JsonConverter.fromJsonString(msg.getContent(), Product.class);
 								storedParts.addAll(partialProduct.getProductParts());
@@ -112,6 +117,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 					return;
 				}
 
+				Event.createEvent(new Event(EventType.PRODUCT_ASSEMBLED, getAID(), getAgentCurrentContainerName(), ""));
 				storedParts.removeAll(parts);
 				sendParts(parts);
 				plan.decreaseAllAmounts();

@@ -1,5 +1,7 @@
 package agents.workers;
 
+import agents.events.Event;
+import agents.events.EventType;
 import agents.utils.JsonConverter;
 import agents.utils.Logger;
 import jade.core.AID;
@@ -11,6 +13,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentContainer;
+import jade.wrapper.ContainerController;
 import jade.wrapper.ControllerException;
 import java.util.Random;
 
@@ -31,6 +34,7 @@ public abstract class Worker<T> extends Agent {
 	public boolean breakdownProcess(){
     	if(shouldFailNow()){
 			Logger.breaks(getLocalName() + (getLocalName().contains("Assembler") ? "" : "Machine") + " breaks...");
+			Event.createEvent(new Event(EventType.AGENT_DIED, getAID(), getAgentCurrentContainerName(), ""));
 			sendUnfinishedTaskToManager();
     		deregisterAgent();
     		moveToDeadContainer();
@@ -103,6 +107,17 @@ public abstract class Worker<T> extends Agent {
 		ContainerID destination = new ContainerID();
 		destination.setName("DeadMachines");
 		doMove(destination);
+	}
+
+	public String getAgentCurrentContainerName(){
+		ContainerController cc = getContainerController();
+		String containerName = "";
+		try {
+			containerName = cc.getContainerName();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
+		return containerName;
 	}
 
 	protected void afterMove(){

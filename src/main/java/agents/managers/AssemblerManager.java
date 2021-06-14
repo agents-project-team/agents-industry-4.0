@@ -1,5 +1,7 @@
 package agents.managers;
 
+import agents.events.Event;
+import agents.events.EventType;
 import agents.product.Product;
 import agents.product.ProductOrder;
 import agents.product.ProductPlan;
@@ -16,6 +18,7 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
+import jade.wrapper.ControllerException;
 import jade.wrapper.StaleProxyException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -119,19 +122,35 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 
 	private void setupActiveAssemblers() {
 		int assemblerTypes = 3;
+		ContainerController cc = getContainerController();
+		String containerName = "";
+		try {
+			containerName = cc.getContainerName();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
 		for(int i = 0; i < assemblerTypes; i++){
 			getActiveWorkers().put(AssemblerType.valueOf(i), startActiveAssemblerAgent(AssemblerType.valueOf(i)));
+			Event.createEvent(new Event(EventType.AGENT_CREATED, getActiveWorkers().get(MachineType.valueOf(i)), containerName, ""));
 		}
 	}
 
 	private void setupSpareAssemblers() {
-		ContainerController cc = startBackupContainer();
 		int assemblerTypes = 3;
 		int backupAmount = 3;
+		ContainerController cc = startBackupContainer();
+		String containerName = "";
+		try {
+			containerName = cc.getContainerName();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
 		for(int i = 0; i < assemblerTypes; i++){
 			List<AID> tmpAssemblers = new ArrayList<>();
 			for(int j = 1; j < backupAmount+1; j++){
-				tmpAssemblers.add(startBackupAssemblerAgent(j, AssemblerType.valueOf(i), cc));
+				AID tmpBackupAssembler = startBackupAssemblerAgent(j, AssemblerType.valueOf(i), cc);
+				tmpAssemblers.add(tmpBackupAssembler);
+				Event.createEvent(new Event(EventType.AGENT_CREATED, tmpBackupAssembler, containerName, ""));
 			}
 			getSpareWorkers().put(AssemblerType.valueOf(i), tmpAssemblers);
 		}

@@ -1,5 +1,7 @@
 package agents.supervisor;
 
+import agents.events.Event;
+import agents.events.EventType;
 import agents.product.ProductOrder;
 import agents.utils.JsonConverter;
 import agents.utils.Logger;
@@ -11,6 +13,8 @@ import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
+import jade.wrapper.ControllerException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -65,6 +69,7 @@ public class SupervisorAgent extends Agent {
 				if (msg != null) {
 					if (msg.getPerformative() == ACLMessage.INFORM && msg.getProtocol().equals("FORDER")) {
 						Logger.supervisor("Supervisor has received a finished order");
+						Event.createEvent(new Event(EventType.ORDER_COMPLETED, getAID(), getCurrentContainerName(), ""));
 
 						ProductOrder finishedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
 						Optional<ProductOrder> sentOrder = sentOrders.stream()
@@ -76,10 +81,10 @@ public class SupervisorAgent extends Agent {
 							finishedOrders.add(sentOrder.get());
 							printFinishedOrders();
 						}
-						if (sentOrders.size() == 0) {
-							Logger.summary("All orders have been completed", true);
-							System.exit(0);
-						}
+//						if (sentOrders.size() == 0) {
+//							Logger.summary("All orders have been completed", true);
+//							System.exit(0);
+//						}
 					}
 				}
 			}
@@ -156,5 +161,16 @@ public class SupervisorAgent extends Agent {
 		profile.setParameter(Profile.CONTAINER_NAME, "DeadMachines");
 		profile.setParameter(Profile.MAIN_HOST, "localhost");
 		runtime.createAgentContainer(profile);
+	}
+
+	private String getCurrentContainerName(){
+		ContainerController cc = getContainerController();
+		String containerName = "";
+		try {
+			containerName = cc.getContainerName();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
+		return containerName;
 	}
 }
