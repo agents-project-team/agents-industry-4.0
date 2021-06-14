@@ -9,15 +9,10 @@ import agents.utils.JsonConverter;
 import agents.utils.Logger;
 import agents.workers.Worker;
 import jade.core.AID;
-import jade.core.ContainerID;
 import jade.core.behaviours.CyclicBehaviour;
-import jade.domain.DFService;
-import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
-import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -171,13 +166,6 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 		ServiceDescription sd = new ServiceDescription();
 		sd.setName("Assembler"+destinationType.toString());
 		sd.setType("Assembler"+destinationType.toString());
-		return getAIDFromDF(sd);
-	}
-
-	private AID getFinalAssemblerAID() {
-		ServiceDescription sd = new ServiceDescription();
-		sd.setName("Assembler"+AssemblerType.Final.toString());
-		sd.setType("Assembler"+AssemblerType.Final.toString());
 		return getAIDFromDF(sd);
 	}
 

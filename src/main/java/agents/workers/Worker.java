@@ -1,13 +1,10 @@
 package agents.workers;
 
-import agents.configs.SimulationConfig;
 import agents.utils.JsonConverter;
 import agents.utils.Logger;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.ContainerID;
-import jade.core.Service;
-import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
@@ -15,13 +12,11 @@ import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentContainer;
 import jade.wrapper.ControllerException;
-import java.util.Date;
 import java.util.Random;
-import static agents.configs.SimulationConfig.FAILURE_RATE;
 
 public abstract class Worker<T> extends Agent {
 
-	private static Date lastFailTime = new Date();
+	private int failChanceIncremental = 0;
 
 	private AID managerId;
 
@@ -31,31 +26,12 @@ public abstract class Worker<T> extends Agent {
     protected void setup() {
 		this.managerId = (AID) getArguments()[0];
 		this.workerType = (String) getArguments()[1];
-		setShuttingDownBehaviour();
     }
-
-	private void setShuttingDownBehaviour() {
-		addBehaviour(new TickerBehaviour(this, 5000) {
-			@Override
-			protected void onTick() {
-//				if (shouldFailNow()) {
-//					if (isNotBackupWorker()) {
-//						Logger.breaks(getLocalName() + (getLocalName().contains("Assembler") ? "" : "Machine") + " breaks...");
-//
-//						sendUnfinishedTasToManager();
-//						deregisterIfAssembler(getAgent());
-//						doDelete();
-//
-//						lastFailTime = new Date();
-//					}
-//				}
-			}
-		});
-	}
 
 	public boolean breakdownProcess(){
     	if(shouldFailNow()){
-    		sendUnfinishedTaskToManager();
+			Logger.breaks(getLocalName() + (getLocalName().contains("Assembler") ? "" : "Machine") + " breaks...");
+			sendUnfinishedTaskToManager();
     		deregisterAgent();
     		moveToDeadContainer();
     		return true;
@@ -72,11 +48,13 @@ public abstract class Worker<T> extends Agent {
 
 	private boolean shouldFailNow() {
 		Random random = new Random();
-		return random.nextInt(100) < FAILURE_RATE && isReasonableTime();
+		return (random.nextDouble() < calculateChance());
 	}
 
-    private boolean isReasonableTime() {
-    	return (new Date().getTime() - lastFailTime.getTime()) > (SimulationConfig.SECONDS_TO_NEXT_POSSIBLE_FAILURE * 1000);
+	private double calculateChance(){
+    	failChanceIncremental++;
+    	double val = Math.exp((failChanceIncremental-7.9)/20)/100;
+    	return val;
 	}
 
 	public void registerAgent(String name){
@@ -147,25 +125,6 @@ public abstract class Worker<T> extends Agent {
 		msgRequestingTask.setContent(workerType);
 		msgRequestingTask.addReceiver(getManagerId());
 		send(msgRequestingTask);
-	}
-
-	private void deregisterIfAssembler(Agent agent) {
-		try {
-			if (getLocalName().contains("Assembler")) {
-				DFService.deregister(agent);
-			}
-		} catch (FIPAException e) {
-			e.printStackTrace();
-		}
-	}
-
-	private boolean isNotBackupWorker(){
-		try {
-			return !this.getContainerController().getContainerName().contains("Backup");
-		} catch (ControllerException e) {
-			e.printStackTrace();
-			return false;
-		}
 	}
 
 	public T getUnfinishedTask() {

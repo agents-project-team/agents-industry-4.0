@@ -1,10 +1,5 @@
 package agents.product;
 
-enum OrderStatus {
-    inProgress,
-    Completed
-}
-
 public class ProductOrder {
 
 	private static int orderCounter = 0;
@@ -17,8 +12,6 @@ public class ProductOrder {
     //Simulation will create orders with different priorities based on other parameters
 	private int orderPriority;
 
-	private OrderStatus orderStatus;
-
 	public ProductOrder() {
 
 	}
@@ -27,12 +20,7 @@ public class ProductOrder {
 		this.productId = id;
         productAmount = amount;
         orderPriority = priority;
-        orderStatus = OrderStatus.inProgress;
 		this.orderId = ++orderCounter;
-    }
-
-    public void CompleteOrder() {
-        orderStatus = OrderStatus.Completed;
     }
 
 	public static int getOrderCounter() {
@@ -73,14 +61,6 @@ public class ProductOrder {
 
 	public void setOrderPriority(int orderPriority) {
 		this.orderPriority = orderPriority;
-	}
-
-	public OrderStatus getOrderStatus() {
-		return orderStatus;
-	}
-
-	public void setOrderStatus(OrderStatus orderStatus) {
-		this.orderStatus = orderStatus;
 	}
 
 	@Override

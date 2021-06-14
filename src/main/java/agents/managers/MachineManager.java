@@ -14,8 +14,6 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
-
-import javax.crypto.Mac;
 import java.util.*;
 
 public class MachineManager extends Agent implements Manager<AID, MachineType> {

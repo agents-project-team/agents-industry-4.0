@@ -1,6 +1,5 @@
 package agents.managers;
 
-import agents.product.PartPlan;
 import agents.product.Product;
 import agents.product.ProductOrder;
 import agents.product.ProductPlan;
@@ -14,22 +13,15 @@ import jade.core.Agent;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.core.behaviours.CyclicBehaviour;
-import jade.domain.DFService;
-import jade.domain.FIPAAgentManagement.DFAgentDescription;
-import jade.domain.FIPAAgentManagement.ServiceDescription;
-import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 public class AssemblerManager extends Agent implements Manager<AID, AssemblerType> {
@@ -261,21 +253,6 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 				currentOrders.remove(planIndex);
 				finishedProducts.remove(index);
 			}
-		}
-	}
-
-	private void finishedProductsOperation(){
-		currentOrders.sort(Comparator.comparing(ProductOrder::getOrderPriority, Comparator.reverseOrder()));
-
-		ProductOrder highestPriorityOrder = currentOrders.get(0);
-		Optional<Product> finalOrder = finishedProducts.stream()
-				.filter(finishedProduct -> finishedProduct.getProductAmount() == highestPriorityOrder.getProductAmount())
-				.findFirst();
-
-		if (finalOrder.isPresent()) {
-			notifyFinishedTask(highestPriorityOrder);
-			finishedProducts.remove(finalOrder.get());
-			currentOrders.remove(highestPriorityOrder);
 		}
 	}
 

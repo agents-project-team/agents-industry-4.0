@@ -7,15 +7,9 @@ import agents.utils.Logger;
 import agents.workers.Worker;
 import agents.workers.assemblers.AssemblerType;
 import jade.core.AID;
-import jade.core.ContainerID;
 import jade.core.behaviours.CyclicBehaviour;
-import jade.domain.DFService;
-import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
-import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
-import java.util.Arrays;
-import java.util.Date;
 
 public class MachineAgent extends Worker<PartPlan> {
 
