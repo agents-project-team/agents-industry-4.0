@@ -1,6 +1,8 @@
 package agents.product;
 
-public class PartPlan {
+import java.io.Serializable;
+
+public class PartPlan implements Serializable {
 
 	private int Id;
     private int totalAmount;

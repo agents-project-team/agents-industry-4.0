@@ -8,8 +8,8 @@ public interface Manager<T, P> {
 
 	AID getSupervisor();
 
-	Map<P, T> getWorkingMachines();
+	Map<P, T> getActiveWorkers();
 
-	Map<P, List<T>> getSpareMachines();
+	Map<P, List<T>> getSpareWorkers();
 
 }

@@ -5,13 +5,13 @@ import java.util.Map;
 
 public class SimulationConfig {
 
-	public static final int     FAILURE_RATE = 5;
+	public static final double  FAILURE_RATE = 0.5;
 
 	public static final boolean DISABLE_LOGS = false;
 
 	// **************************************************************************************************************************************
 
-	public static final double SECONDS_TO_NEXT_POSSIBLE_FAILURE = 5; // Be careful decreasing this, some concurrency issues may appear
+	public static final double SECONDS_TO_NEXT_POSSIBLE_FAILURE = 0; // Be careful decreasing this, some concurrency issues may appear
 
 	// **************************************************************************************************************************************
 

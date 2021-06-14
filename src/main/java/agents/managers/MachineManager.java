@@ -14,29 +14,24 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
 	private AID supervisor;
 
-	private List<ProductPlan> currentPlans = new ArrayList<>();
+	private final Map<MachineType, PartPlan> unfinishedTasks = new HashMap<>();
 
-	private List<ProductPlan> finishedPlans = new ArrayList<>();
+	private final List<ProductPlan> currentPlans = new ArrayList<>();
 
-	private Map<MachineType, AID> workingMachines = new HashMap<>();
+	private final Map<MachineType, AID> workingMachines = new HashMap<>();
 
-	private Map<MachineType, List<AID>> spareMachines = new HashMap<>();
+	private final Map<MachineType, List<AID>> spareMachines = new HashMap<>();
 
 	@Override
 	protected void setup() {
 		setupSupervisor();
-		setupWorkingMachines();
+		setupActiveMachines();
 		setupSpareMachines();
 		setupBehaviours();
 	}
@@ -64,7 +59,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 									send(msgToWorker);
 								}
 							}
-							addCurrentPlan(plan);
+							addNewPlan(plan);
 						} else if (msg.getProtocol().equals("FTASK")) {
 							PartPlan responsePlan = JsonConverter.fromJsonString(msg.getContent(), PartPlan.class);
 							MachineType key = getKey(workingMachines, msg.getSender());
@@ -74,43 +69,47 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 									plan.decreasePartPlanAmount(key);
 								}
 							}
+							currentPlans.removeIf(plan -> plan.getStatus() == PlanStatus.Completed);
 
 							PartPlan highestPartPlan = getHighestPriorityPart(key);
 							if (highestPartPlan != null) {
 								assignTaskToMachine(highestPartPlan, msg.getSender());
 							}
+						} else if (msg.getProtocol().equals("RTASK")){
+							MachineType key = MachineType.getByName(msg.getContent());
+							PartPlan unfinishedPartPlan = unfinishedTasks.get(key);
+							Logger.process("Sending unfinished task to a backup " + key + " machine");
+
+							ACLMessage unfinishedPartMessage = new ACLMessage(ACLMessage.REQUEST);
+							unfinishedPartMessage.addReceiver(workingMachines.get(key));
+							unfinishedPartMessage.setContent(JsonConverter.toJsonString(unfinishedPartPlan));
+							send(unfinishedPartMessage);
+							unfinishedTasks.remove(key);
 						}
 					} else if (msg.getPerformative() == ACLMessage.CANCEL) {
 						AID deadMachine = msg.getSender();
 						MachineType key = getKey(workingMachines, deadMachine);
-						PartPlan unfinishedPartPlan = null;
 
-						if (msg.getContent() != null) {
-							unfinishedPartPlan = JsonConverter.fromJsonString(msg.getContent(), PartPlan.class);
+						if (msg.getContent() == null || key == null) return;
+
+						PartPlan unfinishedPartPlan = JsonConverter.fromJsonString(msg.getContent(), PartPlan.class);
+						unfinishedTasks.put(key, unfinishedPartPlan);
+						if (spareMachines.get(key).isEmpty()) {
+							//Handler for no more machines
+							System.out.println("No more " + key + " machines left.");
+							return;
 						}
 
-						if (key != null) {
-							if (spareMachines.get(key).isEmpty()) {
-								System.out.println("No more " + key + " machines left.");
-								return;
-							}
+						ACLMessage activateMessage = new ACLMessage(ACLMessage.INFORM);
+						activateMessage.setProtocol("ACT");
+						activateMessage.addReceiver(spareMachines.get(key).get(0));
+						send(activateMessage);
 
-							var replacementMessage = new ACLMessage();
-							replacementMessage.addReceiver(spareMachines.get(key).get(0));
-							replacementMessage.setPerformative(ACLMessage.PROPOSE);
-							send(replacementMessage);
-
-							Logger.process("Sending unfinished task to a backup " + key + " machine");
-
-							var unfinishedPartMessage = new ACLMessage();
-							unfinishedPartMessage.addReceiver(spareMachines.get(key).get(0));
-							unfinishedPartMessage.setContent(JsonConverter.toJsonString(unfinishedPartPlan));
-							unfinishedPartMessage.setPerformative(ACLMessage.REQUEST);
-							send(unfinishedPartMessage);
-
-							workingMachines.computeIfPresent(key, (e, a) -> spareMachines.get(key).get(0));
-							spareMachines.get(key).remove(0);
-						}
+						//Swap machines
+						AID replacementAID = spareMachines.get(key).get(0);
+						AID oldAID = workingMachines.get(key);
+						spareMachines.get(key).remove(0);
+						workingMachines.replace(key, oldAID, replacementAID);
 					}
 				} else {
 					block();
@@ -123,56 +122,24 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 		supervisor = (AID) getArguments()[0];
 	}
 
-	private void setupWorkingMachines() {
-		getWorkingMachines().put(MachineType.Sole, startWorkerAgent(MachineType.Sole));
-		getWorkingMachines().put(MachineType.DetailFabric, startWorkerAgent(MachineType.DetailFabric));
-		getWorkingMachines().put(MachineType.InnerFabric, startWorkerAgent(MachineType.InnerFabric));
-		getWorkingMachines().put(MachineType.Outsole, startWorkerAgent(MachineType.Outsole));
-		getWorkingMachines().put(MachineType.SurfaceFabric, startWorkerAgent(MachineType.SurfaceFabric));
+	private void setupActiveMachines() {
+		int machineTypes = 5;
+		for(int i = 0; i < machineTypes; i++){
+			getActiveWorkers().put(MachineType.valueOf(i), startActiveMachineAgent(MachineType.valueOf(i)));
+		}
 	}
 
 	private void setupSpareMachines() {
 		ContainerController cc = startBackupContainer();
-
-		getSpareMachines().put(MachineType.Sole, new ArrayList<>(
-				Arrays.asList(
-						startBackupWorkerAgent(MachineType.Sole + "1", cc),
-						startBackupWorkerAgent(MachineType.Sole + "2", cc),
-						startBackupWorkerAgent(MachineType.Sole + "3", cc)
-				)
-		));
-
-		getSpareMachines().put(MachineType.DetailFabric, new ArrayList<>(
-				Arrays.asList(
-						startBackupWorkerAgent(MachineType.DetailFabric + "1", cc),
-						startBackupWorkerAgent(MachineType.DetailFabric + "2", cc),
-						startBackupWorkerAgent(MachineType.DetailFabric + "3", cc)
-				)
-		));
-
-		getSpareMachines().put(MachineType.InnerFabric, new ArrayList<>(
-				Arrays.asList(
-						startBackupWorkerAgent(MachineType.InnerFabric + "1", cc),
-						startBackupWorkerAgent(MachineType.InnerFabric + "2", cc),
-						startBackupWorkerAgent(MachineType.InnerFabric + "3", cc)
-				)
-		));
-
-		getSpareMachines().put(MachineType.Outsole, new ArrayList<>(
-				Arrays.asList(
-						startBackupWorkerAgent(MachineType.Outsole + "1", cc),
-						startBackupWorkerAgent(MachineType.Outsole + "2", cc),
-						startBackupWorkerAgent(MachineType.Outsole + "3", cc)
-				)
-		));
-
-		getSpareMachines().put(MachineType.SurfaceFabric, new ArrayList<>(
-				Arrays.asList(
-						startBackupWorkerAgent(MachineType.SurfaceFabric + "1", cc),
-						startBackupWorkerAgent(MachineType.SurfaceFabric + "2", cc),
-						startBackupWorkerAgent(MachineType.SurfaceFabric + "3", cc)
-				)
-		));
+		int machineTypes = 5;
+		int backupAmount = 3;
+		for(int i = 0; i < machineTypes; i++){
+			List<AID> tmpMachines = new ArrayList<>();
+			for(int j = 1; j < backupAmount+1; j++){
+				tmpMachines.add(startBackupMachineAgent(j, MachineType.valueOf(i), cc));
+			}
+			getSpareWorkers().put(MachineType.valueOf(i), tmpMachines);
+		}
 	}
 
 	private ContainerController startBackupContainer() {
@@ -189,30 +156,33 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 	}
 
 	@Override
-	public Map<MachineType, AID> getWorkingMachines() {
+	public Map<MachineType, AID> getActiveWorkers() {
 		return workingMachines;
 	}
 
 	@Override
-	public Map<MachineType, List<AID>> getSpareMachines() {
+	public Map<MachineType, List<AID>> getSpareWorkers() {
 		return spareMachines;
 	}
 
-	private AID startWorkerAgent(MachineType type) {
+	private AID startActiveMachineAgent(MachineType type) {
 		try {
 			ContainerController cc = getContainerController();
 			AgentController ac = cc.createNewAgent(type.name(), "agents.workers.machines.MachineAgent", new Object[]{getAID(), type.toString()});
 			ac.start();
-			return new AID(ac.getName(), AID.ISGUID);
+			AID agentID = new AID(ac.getName(), AID.ISGUID);
+			sendMsgToRegisterAgent(agentID);
+			return agentID;
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new IllegalStateException();
 		}
 	}
 
-	private AID startBackupWorkerAgent(String name, ContainerController cc) {
+	private AID startBackupMachineAgent(int backupNumber, MachineType type, ContainerController cc) {
+		String name = "Backup"+type.toString()+backupNumber;
 		try {
-			AgentController ac = cc.createNewAgent("Backup" + name, "agents.workers.machines.MachineAgent", new Object[]{getAID(), "Backup" + name});
+			AgentController ac = cc.createNewAgent(name, "agents.workers.machines.MachineAgent", new Object[]{getAID(), type.toString()});
 			ac.start();
 			return new AID(ac.getName(), AID.ISGUID);
 		} catch (Exception e) {
@@ -235,18 +205,6 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 		return null;
 	}
 
-	private ProductPlan getHighestPriorityPlan() {
-		ProductPlan plan = null;
-		int maxPriority = 0;
-		for(var p : currentPlans){
-			if(p.getPriority() > maxPriority){
-				maxPriority = p.getPriority();
-				plan = p;
-			}
-		}
-		return plan;
-	}
-
 	private PartPlan getHighestPriorityPart(MachineType key){
 		return currentPlans.stream()
 				.map(plan -> plan.getPlanParts().get(key))
@@ -256,7 +214,7 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 
 	}
 
-	private void addCurrentPlan(ProductPlan plan) {
+	private void addNewPlan(ProductPlan plan) {
 		currentPlans.add(plan);
 		currentPlans.sort(Comparator.comparing(ProductPlan::getPriority, Comparator.reverseOrder()));
 	}
@@ -269,5 +227,12 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 			}
 		}
 		return true;
+	}
+
+	private void sendMsgToRegisterAgent(AID agentId){
+		ACLMessage activateMsg = new ACLMessage(ACLMessage.INFORM);
+		activateMsg.setProtocol("REG");
+		activateMsg.addReceiver(agentId);
+		send(activateMsg);
 	}
 }

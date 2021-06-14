@@ -13,27 +13,22 @@ import jade.core.Agent;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.core.behaviours.CyclicBehaviour;
-import jade.domain.DFService;
-import jade.domain.FIPAAgentManagement.DFAgentDescription;
-import jade.domain.FIPAAgentManagement.ServiceDescription;
-import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 public class AssemblerManager extends Agent implements Manager<AID, AssemblerType> {
 
 	private AID supervisor;
+
+	private final Map<AssemblerType, AssemblerState> unfinishedTasks = new HashMap<>();
 
 	private final List<ProductOrder> currentOrders = new ArrayList<>();
 
@@ -46,7 +41,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	@Override
 	protected void setup() {
 		setupSupervisor();
-		setupWorkingAssemblers();
+		setupActiveAssemblers();
 		setupSpareAssemblers();
 		setupBehaviours();
 	}
@@ -65,52 +60,51 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 							ProductPlan plan = new ProductPlan(order);
 							sendPlanToFabricAssembler(plan);
 							sendPlanToSoleAssembler(plan);
-							sendPLanToFinalAssembler(plan);
+							sendPlanToFinalAssembler(plan);
 							currentOrders.add(order);
+						} else if (msg.getProtocol().equals("RTASK")){
+							AssemblerType key = AssemblerType.getByName(msg.getContent());
+							AssemblerState assemblerState = unfinishedTasks.get(key);
+							Logger.process("Sending unfinished task to a backup " + key + " assembler");
+
+							ACLMessage unfinishedPartMessage = new ACLMessage(ACLMessage.REQUEST);
+							unfinishedPartMessage.addReceiver(workingAssemblers.get(key));
+							unfinishedPartMessage.setContent(JsonConverter.toJsonString(assemblerState));
+							send(unfinishedPartMessage);
+							unfinishedTasks.remove(key);
 						}
 					} else if (msg.getPerformative() == ACLMessage.UNKNOWN) {
 						if (msg.getProtocol().equals("FPROD")) {
 							Logger.info(getLocalName() + " has received product");
 
 							Product product = JsonConverter.fromJsonString(msg.getContent(), Product.class);
-
-							if (!finishedProducts.isEmpty()) {
-								finishedProducts.get(0).increaseAmount(1);
-							} else {
-								finishedProducts.add(product);
-							}
-							finishedProductsOperation();
+							System.out.println(product.toString());
+							finishedProductsOperation(product);
 						}
 					} else if (msg.getPerformative() == ACLMessage.CANCEL) {
 						AID deadMachine = msg.getSender();
 						AssemblerType key = getKey(workingAssemblers, deadMachine);
-						AssemblerState unfinishedAssemblerState = null;
 
-						if (msg.getContent() != null) {
-							unfinishedAssemblerState = JsonConverter.fromJsonString(msg.getContent(), AssemblerState.class);
+						if(msg.getContent() == null || key == null) return;
+
+						AssemblerState unfinishedAssemblerState = JsonConverter.fromJsonString(msg.getContent(), AssemblerState.class);
+						unfinishedTasks.put(key, unfinishedAssemblerState);
+						if (spareAssemblers.get(key).isEmpty()) {
+							//Handler for no more assemblers
+							Logger.info("No more " + key + " assemblers left.");
+							return;
 						}
 
-						if (key != null) {
-							var replacementMessage = new ACLMessage();
-							if (spareAssemblers.get(key).isEmpty()) {
-								Logger.info("No more " + key + " assemblers left.");
-								return;
-							}
+						ACLMessage replacementMessage = new ACLMessage(ACLMessage.INFORM);
+						replacementMessage.setProtocol("ACT");
+						replacementMessage.addReceiver(spareAssemblers.get(key).get(0));
+						send(replacementMessage);
 
-							replacementMessage.addReceiver(spareAssemblers.get(key).get(0));
-							replacementMessage.setPerformative(ACLMessage.PROPOSE);
-							send(replacementMessage);
-
-							Logger.process("Sending unfinished task to a backup " + key + " assembler");
-
-							var unfinishedPartMessage = new ACLMessage(ACLMessage.REQUEST);
-							unfinishedPartMessage.addReceiver(spareAssemblers.get(key).get(0));
-							unfinishedPartMessage.setContent(JsonConverter.toJsonString(unfinishedAssemblerState));
-							send(unfinishedPartMessage);
-
-							workingAssemblers.computeIfPresent(key, (e, a) -> spareAssemblers.get(key).get(0));
-							spareAssemblers.get(key).remove(0);
-						}
+						//Swap Machines
+						AID replacementAID = spareAssemblers.get(key).get(0);
+						AID oldAID = workingAssemblers.get(key);
+						spareAssemblers.get(key).remove(0);
+						workingAssemblers.replace(key, oldAID, replacementAID);
 					}
 				} else {
 					block();
@@ -123,38 +117,24 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		supervisor = (AID) getArguments()[0];
 	}
 
-	private void setupWorkingAssemblers() {
-		getWorkingMachines().put(AssemblerType.Sole, startAssemblerAgent(AssemblerType.Sole));
-		getWorkingMachines().put(AssemblerType.Final, startAssemblerAgent(AssemblerType.Final));
-		getWorkingMachines().put(AssemblerType.Fabric, startAssemblerAgent(AssemblerType.Fabric));
+	private void setupActiveAssemblers() {
+		int assemblerTypes = 3;
+		for(int i = 0; i < assemblerTypes; i++){
+			getActiveWorkers().put(AssemblerType.valueOf(i), startActiveAssemblerAgent(AssemblerType.valueOf(i)));
+		}
 	}
 
 	private void setupSpareAssemblers() {
 		ContainerController cc = startBackupContainer();
-
-		getSpareMachines().put(AssemblerType.Sole, new ArrayList<>(
-				Arrays.asList(
-						startBackupAssemblerAgent(AssemblerType.Sole + "1", cc, AssemblerType.Sole),
-						startBackupAssemblerAgent(AssemblerType.Sole + "2", cc, AssemblerType.Sole),
-						startBackupAssemblerAgent(AssemblerType.Sole + "3", cc, AssemblerType.Sole)
-				)
-		));
-
-		getSpareMachines().put(AssemblerType.Fabric, new ArrayList<>(
-				Arrays.asList(
-						startBackupAssemblerAgent(AssemblerType.Fabric + "1", cc, AssemblerType.Fabric),
-						startBackupAssemblerAgent(AssemblerType.Fabric + "2", cc, AssemblerType.Fabric),
-						startBackupAssemblerAgent(AssemblerType.Fabric + "3", cc, AssemblerType.Fabric)
-				)
-		));
-
-		getSpareMachines().put(AssemblerType.Final, new ArrayList<>(
-				Arrays.asList(
-						startBackupAssemblerAgent(AssemblerType.Final + "1", cc, AssemblerType.Final),
-						startBackupAssemblerAgent(AssemblerType.Final + "2", cc, AssemblerType.Final),
-						startBackupAssemblerAgent(AssemblerType.Final + "3", cc, AssemblerType.Final)
-				)
-		));
+		int assemblerTypes = 3;
+		int backupAmount = 3;
+		for(int i = 0; i < assemblerTypes; i++){
+			List<AID> tmpAssemblers = new ArrayList<>();
+			for(int j = 1; j < backupAmount+1; j++){
+				tmpAssemblers.add(startBackupAssemblerAgent(j, AssemblerType.valueOf(i), cc));
+			}
+			getSpareWorkers().put(AssemblerType.valueOf(i), tmpAssemblers);
+		}
 	}
 
 	@Override
@@ -163,12 +143,12 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	}
 
 	@Override
-	public Map<AssemblerType, AID> getWorkingMachines() {
+	public Map<AssemblerType, AID> getActiveWorkers() {
 		return workingAssemblers;
 	}
 
 	@Override
-	public Map<AssemblerType, List<AID>> getSpareMachines() {
+	public Map<AssemblerType, List<AID>> getSpareWorkers() {
 		return spareAssemblers;
 	}
 
@@ -189,23 +169,24 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		return null;
 	}
 
-	private AID startAssemblerAgent(AssemblerType type) {
+	private AID startActiveAssemblerAgent(AssemblerType type) {
 		ContainerController cc = getContainerController();
 		try {
 			AgentController ac = cc.createNewAgent("Assembler" + type.name(), "agents.workers.assemblers.AssemblerAgent",
 					new Object[]{getAID(), type.toString()});
 			ac.start();
 			AID agentID = new AID(ac.getName(), AID.ISGUID);
-			addAgentToRegistry(agentID, type);
+			sendMsgToRegisterAgent(agentID);
 			return agentID;
 		} catch (StaleProxyException e) {
 			throw new IllegalStateException();
 		}
 	}
 
-	private AID startBackupAssemblerAgent(String name, ContainerController cc, AssemblerType type) {
+	private AID startBackupAssemblerAgent(int backupNumber, AssemblerType type,  ContainerController cc) {
+		String name = "BackupAssembler"+type.toString()+backupNumber;
 		try {
-			AgentController ac = cc.createNewAgent("AssemblerBackup" + name, "agents.workers.assemblers.AssemblerAgent",
+			AgentController ac = cc.createNewAgent(name, "agents.workers.assemblers.AssemblerAgent",
 					new Object[]{getAID(), type.toString()});
 			ac.start();
 			return new AID(ac.getName(), AID.ISGUID);
@@ -224,6 +205,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 			}
 		}
 		ACLMessage msgToFabricAssembler = new ACLMessage(ACLMessage.INFORM);
+		msgToFabricAssembler.setProtocol("PPLAN");
 		msgToFabricAssembler.setContent(JsonConverter.toJsonString(fabricPlan));
 		msgToFabricAssembler.addReceiver(workingAssemblers.get(AssemblerType.Fabric));
 		send(msgToFabricAssembler);
@@ -238,30 +220,39 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 			}
 		}
 		ACLMessage msgToSoleAssembler = new ACLMessage(ACLMessage.INFORM);
+		msgToSoleAssembler.setProtocol("PPLAN");
 		msgToSoleAssembler.setContent(JsonConverter.toJsonString(solePlan));
 		msgToSoleAssembler.addReceiver(workingAssemblers.get(AssemblerType.Sole));
 		send(msgToSoleAssembler);
 	}
 
-	private void sendPLanToFinalAssembler(ProductPlan plan) {
+	private void sendPlanToFinalAssembler(ProductPlan plan) {
 		ACLMessage msgToFinalAssembler = new ACLMessage(ACLMessage.INFORM);
+		msgToFinalAssembler.setProtocol("PPLAN");
 		msgToFinalAssembler.setContent(JsonConverter.toJsonString(plan));
 		msgToFinalAssembler.addReceiver(workingAssemblers.get(AssemblerType.Final));
 		send(msgToFinalAssembler);
 	}
 
-	private void finishedProductsOperation() {
-		currentOrders.sort(Comparator.comparing(ProductOrder::getOrderPriority, Comparator.reverseOrder()));
-
-		ProductOrder highestPriorityOrder = currentOrders.get(0);
-		Optional<Product> finalOrder = finishedProducts.stream()
-				.filter(finishedProduct -> finishedProduct.getProductAmount() == highestPriorityOrder.getProductAmount())
-				.findFirst();
-
-		if (finalOrder.isPresent()) {
-			notifyFinishedTask(highestPriorityOrder);
-			finishedProducts.remove(finalOrder.get());
-			currentOrders.remove(highestPriorityOrder);
+	private void finishedProductsOperation(Product product) {
+		//Add product or increase its amount in the list
+		int index = getProductIndex(product.getProductId());
+		if(index < 0){
+			finishedProducts.add(product);
+		}else{
+			finishedProducts.get(index).increaseAmount(1);
+		}
+		index = getProductIndex(product.getProductId());
+		int planIndex = getProductPlanIndex(product.getProductId());
+		if(planIndex != -1) {
+			if(finishedProducts.get(index).getProductAmount() == currentOrders.get(planIndex).getProductAmount()){
+				//Send product and remove from plans(not implemented)
+				System.out.println(currentOrders.get(planIndex).toString());
+				System.out.println(finishedProducts.get(index).toString());
+				notifyFinishedTask(currentOrders.get(planIndex));
+				currentOrders.remove(planIndex);
+				finishedProducts.remove(index);
+			}
 		}
 	}
 
@@ -274,17 +265,32 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		Logger.info(getLocalName() + " has sent a order to supervisor");
 	}
 
-	private void addAgentToRegistry(AID agent, AssemblerType type) {
-		DFAgentDescription dfd = new DFAgentDescription();
-		dfd.setName(agent);
-		ServiceDescription sd = new ServiceDescription();
-		sd.setName(type.toString());
-		sd.setType(type.toString());
-		dfd.addServices(sd);
-		try {
-			DFService.register(this, dfd);
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
+	private int getProductIndex(String newProdId){
+		if(!finishedProducts.isEmpty()){
+			int index = 0;
+			for(Product finishedProduct : finishedProducts){
+				if(finishedProduct.getProductId().equals(newProdId)) return index;
+				index++;
+			}
 		}
+		return -1;
+	}
+
+	private int getProductPlanIndex(String newProdId){
+		if(!currentOrders.isEmpty()){
+			int index = 0;
+			for(ProductOrder productOrder : currentOrders){
+				if(productOrder.getProductId().equals(newProdId)) return index;
+				index++;
+			}
+		}
+		return -1;
+	}
+
+	private void sendMsgToRegisterAgent(AID agentId){
+		ACLMessage activateMsg = new ACLMessage(ACLMessage.INFORM);
+		activateMsg.setProtocol("REG");
+		activateMsg.addReceiver(agentId);
+		send(activateMsg);
 	}
 }

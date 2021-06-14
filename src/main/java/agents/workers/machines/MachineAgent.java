@@ -7,51 +7,42 @@ import agents.utils.Logger;
 import agents.workers.Worker;
 import agents.workers.assemblers.AssemblerType;
 import jade.core.AID;
-import jade.core.ContainerID;
 import jade.core.behaviours.CyclicBehaviour;
-import jade.domain.DFService;
-import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
-import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
-import java.util.Arrays;
-import java.util.Date;
 
 public class MachineAgent extends Worker<PartPlan> {
 
-	private String customState;
-
-	private Object bluePrint;
-
-	private int numberOfDetails;
-
-	private AID assemblerId;
-
 	private PartPlan currentPlan;
+
+	private MachineType machineType;
 
 	@Override
 	protected void setup() {
 		super.setup();
+		machineType = MachineType.getByName(getWorkerType());
 		super.addBehaviour(new CyclicBehaviour() {
 			@Override
 			public void action() {
 				ACLMessage msg = receive();
 				if (msg != null) {
-					if (msg.getPerformative() == ACLMessage.PROPOSE) {
-						Logger.process(getLocalName() + " replaces broken machine");
-
-						ContainerID destination = new ContainerID();
-						destination.setName("Main-Container");
-						doMove(destination);
+					if (msg.getPerformative() == ACLMessage.INFORM) {
+						if(msg.getProtocol().equals("REG")){
+							registerAgent("Machine");
+						}else if(msg.getProtocol().equals("ACT")){
+							Logger.process(getLocalName() + " replaces broken machine");
+							moveToMainContainer();
+							registerAgent("Machine");
+						}
 					} else if (msg.getPerformative() == ACLMessage.REQUEST) {
 						PartPlan plan = JsonConverter.fromJsonString(msg.getContent(), PartPlan.class);
 						currentPlan = plan;
 
 						Logger.info(getLocalName() + " is creating a part");
 
-						doWait((long) (currentPlan.getSeconds() * 1000));
+						if(!createProcedure()) return;
 
-						ProductPart createdPart = new ProductPart(plan.getPartType(), plan.getId());
+						ProductPart createdPart = new ProductPart(plan.getPartType());
 
 						AID receiverAssembler = getCurrentAssembler();
 						if (receiverAssembler != null) {
@@ -82,24 +73,20 @@ public class MachineAgent extends Worker<PartPlan> {
 
 	private AID getCurrentAssembler() {
 		ServiceDescription sd = new ServiceDescription();
-		MachineType ownType = MachineType.getByName(getWorkerType());
-		if (ownType == MachineType.DetailFabric || ownType == MachineType.InnerFabric || ownType == MachineType.SurfaceFabric) {
-			sd.setType(AssemblerType.Fabric.toString());
-			sd.setName(AssemblerType.Fabric.toString());
-		} else if (ownType == MachineType.Sole || ownType == MachineType.Outsole) {
-			sd.setType(AssemblerType.Sole.toString());
-			sd.setName(AssemblerType.Sole.toString());
+		if (machineType == MachineType.DetailFabric || machineType == MachineType.InnerFabric || machineType == MachineType.SurfaceFabric) {
+			sd.setType("Assembler"+AssemblerType.Fabric.toString());
+			sd.setName("Assembler"+AssemblerType.Fabric.toString());
+		} else if (machineType == MachineType.Sole || machineType == MachineType.Outsole) {
+			sd.setType("Assembler"+AssemblerType.Sole.toString());
+			sd.setName("Assembler"+AssemblerType.Sole.toString());
 		}
-		DFAgentDescription dfd = new DFAgentDescription();
-		dfd.addServices(sd);
-		try {
-			DFAgentDescription[] result = DFService.search(this, dfd);
-			if (result.length > 0) {
-				return result[0].getName();
-			}
-		} catch (FIPAException fe) {
-			fe.printStackTrace();
-		}
-		return null;
+		return getAIDFromDF(sd);
+	}
+
+	public boolean createProcedure(){
+		doWait((long) (currentPlan.getSeconds() * 1000));
+		boolean broke = breakdownProcess();
+		if(broke) return false;
+		return true;
 	}
 }
