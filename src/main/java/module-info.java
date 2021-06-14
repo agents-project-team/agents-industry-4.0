@@ -1,7 +1,12 @@
 module agents {
-    requires javafx.controls;
-    requires javafx.fxml;
 	requires jade;
+	requires spring.webmvc;
+	requires spring.web;
+	requires spring.boot;
+	requires spring.context;
+	requires spring.boot.autoconfigure;
+	requires spring.boot.starter;
+	requires spring.boot.starter.tomcat;
 	requires com.fasterxml.jackson.databind;
 
 	exports agents;
@@ -14,7 +19,7 @@ module agents {
 	exports agents.utils;
 
 	opens agents.product;
+	opens agents to spring.core;
 	opens agents.workers.assemblers to com.fasterxml.jackson.databind;
-	opens agents to javafx.fxml;
     opens agents.workers to jade;
 }
