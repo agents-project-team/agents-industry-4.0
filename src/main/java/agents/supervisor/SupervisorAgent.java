@@ -22,14 +22,6 @@ import java.util.Optional;
 
 public class SupervisorAgent extends Agent {
 
-	private List<ProductOrder> receivedOrders = new ArrayList<>(
-			List.of(new ProductOrder("AXY6-BZC8-C999-DB31-EGH6", 8, 1),
-					new ProductOrder("ACCC-B980-CBF3-DAD3-EPH8", 10, 3),
-					new ProductOrder("ADSE-B8H6-CZZ2-DO8J-E864", 6, 4),
-					new ProductOrder("A892-BBS5-CND3-DP87-EHG7", 6, 2)
-			)
-	);
-
 	private final List<ProductOrder> sentOrders = new ArrayList<>();
 
 	private final List<ProductOrder> finishedOrders = new ArrayList<>();
@@ -71,7 +63,20 @@ public class SupervisorAgent extends Agent {
 							}
 						}else if(msg.getProtocol().equals("NORDER")){
 							ProductOrder receivedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
-							System.out.println(receivedOrder.toString());
+							Logger.supervisor("Supervisor sends product plan to managers");
+
+							ACLMessage msgToManagers = new ACLMessage(ACLMessage.INFORM);
+							msgToManagers.setContent(JsonConverter.toJsonString(receivedOrder));
+							msgToManagers.setProtocol("ORDER");
+							msgToManagers.addReceiver(machineManager);
+							msgToManagers.addReceiver(assemblerManager);
+							send(msgToManagers);
+							sentOrders.add(receivedOrder);
+						}else if(msg.getProtocol().equals("STOGGL")){
+							ACLMessage msgToToggleSimulation = new ACLMessage(ACLMessage.INFORM);
+							msgToToggleSimulation.setProtocol("STOGGL");
+							msgToToggleSimulation.addReceiver(simulationAgent);
+							send(msgToToggleSimulation);
 						}
 					}
 				}else{
@@ -79,47 +84,6 @@ public class SupervisorAgent extends Agent {
 				}
 			}
 		});
-
-//		addBehaviour(new TickerBehaviour(this, 2000) {
-//			@Override
-//			protected void onTick() {
-//				if (receivedOrders.size() > 0) {
-//					Logger.supervisor("Supervisor sends product plan to managers");
-//
-//					ProductOrder order = receivedOrders.get(0);
-//					String productPlan = JsonConverter.toJsonString(order);
-//
-//					ACLMessage msgToManagers = new ACLMessage(ACLMessage.INFORM);
-//					msgToManagers.setContent(productPlan);
-//					msgToManagers.setProtocol("ORDER");
-//					msgToManagers.addReceiver(machineManager);
-//					msgToManagers.addReceiver(assemblerManager);
-//					send(msgToManagers);
-//
-//					receivedOrders.remove(order);
-//					sentOrders.add(order);
-//				}
-//
-//				ACLMessage msg = receive();
-//				if (msg != null) {
-//					if (msg.getPerformative() == ACLMessage.INFORM && msg.getProtocol().equals("FORDER")) {
-//						Logger.supervisor("Supervisor has received a finished order");
-//						Event.createEvent(new Event(EventType.ORDER_COMPLETED, getAID(), getCurrentContainerName(), ""));
-//
-//						ProductOrder finishedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
-//						Optional<ProductOrder> sentOrder = sentOrders.stream()
-//								.filter(ord -> ord.getOrderId() == finishedOrder.getOrderId())
-//								.findFirst();
-//
-//						if (sentOrder.isPresent()) {
-//							sentOrders.remove(sentOrder.get());
-//							finishedOrders.add(sentOrder.get());
-//							printFinishedOrders();
-//						}
-//					}
-//				}
-//			}
-//		});
 	}
 
 	private AID startMachineManager() {
@@ -178,20 +142,12 @@ public class SupervisorAgent extends Agent {
 		this.machineManager = machineManager;
 	}
 
-	public void setReceivedOrders(List<ProductOrder> orders) {
-		receivedOrders = orders;
-	}
-
 	public AID getMachineManager() {
 		return machineManager;
 	}
 
 	public AID getAssemblerManager() {
 		return assemblerManager;
-	}
-
-	public List<ProductOrder> getReceivedOrders() {
-		return receivedOrders;
 	}
 
 	public List<ProductOrder> getSentOrders() {

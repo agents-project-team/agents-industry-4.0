@@ -16,9 +16,12 @@ public class SimulationAgent extends Agent {
 
     private AID supervisor;
 
+    private boolean isRunning;
+
     @Override
     public void setup(){
         this.supervisor = (AID) getArguments()[0];
+        isRunning = true;
         setupGenerateOrderBehaviour();
     }
 
@@ -26,20 +29,31 @@ public class SimulationAgent extends Agent {
         addBehaviour(new CyclicBehaviour() {
             @Override
             public void action() {
-                int timeTillNextOrder = generateRandomInt(SimulationConfig.MIN_SECONDS_PER_ORDER, SimulationConfig.MAX_SECONDS_PER_ORDER);
+                if(isRunning){
+                    int timeTillNextOrder = generateRandomInt(SimulationConfig.MIN_SECONDS_PER_ORDER, SimulationConfig.MAX_SECONDS_PER_ORDER);
 
-                doWait(timeTillNextOrder* 1000L);
+                    doWait(timeTillNextOrder* 1000L);
 
-                ProductOrder newOrder = new ProductOrder(
-                        generateProductId(),
-                        generateRandomInt(1, SimulationConfig.MAX_PRODUCT_AMOUNT),
-                        generateRandomInt(1, SimulationConfig.MAX_PRIORITY_VALUE));
+                    ProductOrder newOrder = new ProductOrder(
+                            generateProductId(),
+                            generateRandomInt(1, SimulationConfig.MAX_PRODUCT_AMOUNT),
+                            generateRandomInt(1, SimulationConfig.MAX_PRIORITY_VALUE));
 
-                ACLMessage orderMsg = new ACLMessage(ACLMessage.INFORM);
-                orderMsg.setProtocol("NORDER");
-                orderMsg.setContent(JsonConverter.toJsonString(newOrder));
-                orderMsg.addReceiver(supervisor);
-                send(orderMsg);
+                    ACLMessage orderMsg = new ACLMessage(ACLMessage.INFORM);
+                    orderMsg.setProtocol("NORDER");
+                    orderMsg.setContent(JsonConverter.toJsonString(newOrder));
+                    orderMsg.addReceiver(supervisor);
+                    send(orderMsg);
+                }
+                ACLMessage msg = receive();
+                if(msg != null){
+                    if(msg.getPerformative() == ACLMessage.INFORM){
+                        if(msg.getProtocol().equals("STOGGL")){
+                            if(isRunning) isRunning = false;
+                            else isRunning = true;
+                        }
+                    }
+                }
             }
         });
     }
