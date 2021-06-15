@@ -33,9 +33,9 @@ public class StorageAgent extends Agent {
                     if(msg.getPerformative() == ACLMessage.UNKNOWN){
                         if(msg.getProtocol().equals("FPRODS")){
                             Logger.info(getLocalName()+" has received a batch of products");
-                            Event.createEvent(new Event(EventType.PRODUCTS_RECEIVED, getAID(), getCurrentContainerName(), ""));
 
                             Product finishedProduct = JsonConverter.fromJsonString(msg.getContent(), Product.class);
+                            Event.createEvent(new Event(EventType.PRODUCTS_RECEIVED, getAID(), getCurrentContainerName(), finishedProduct.toString()));
                             productsStored.add(finishedProduct);
                         }
                     }

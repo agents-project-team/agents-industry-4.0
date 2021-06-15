@@ -52,4 +52,11 @@ public class PartPlan implements Serializable {
     public void decreaseCurrentAmount(){
         this.currentAmount--;
     }
+
+    public String toEventString() {
+        return "PartPlan{ " +
+                "planId=" + Id +
+                "partId=" + partType +
+                " }";
+    }
 }

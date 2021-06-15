@@ -34,7 +34,6 @@ public abstract class Worker<T> extends Agent {
 	public boolean breakdownProcess(){
     	if(shouldFailNow()){
 			Logger.breaks(getLocalName() + (getLocalName().contains("Assembler") ? "" : "Machine") + " breaks...");
-			Event.createEvent(new Event(EventType.AGENT_DIED, getAID(), getAgentCurrentContainerName(), ""));
 			sendUnfinishedTaskToManager();
     		deregisterAgent();
     		moveToDeadContainer();
@@ -129,7 +128,13 @@ public abstract class Worker<T> extends Agent {
 			e.printStackTrace();
 		}
 		if(containerName != null){
-			if(containerName.equals("Main-Container")) requestTaskFromManager();
+			if(containerName.equals("Main-Container")){
+				requestTaskFromManager();
+				Event.createEvent(new Event(EventType.AGENT_REPLACED, getAID(), getAgentCurrentContainerName(), ""));
+			}
+			if(containerName.equals("DeadMachines")){
+				Event.createEvent(new Event(EventType.AGENT_DIED, getAID(), getAgentCurrentContainerName(), ""));
+			}
 		}
 	}
 

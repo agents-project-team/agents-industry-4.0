@@ -39,17 +39,22 @@ public class Product {
         return tmpId.substring(0, tmpId.length() - 1);
     }
 
-	@Override
-	public String toString() {
+    public String partialToString(){
         Collections.sort(productParts, (part1, part2) -> part1.getType().compareTo(part2.getType()));
         String parts = "";
         for(ProductPart part : productParts){
             parts = parts + part.getType() + " ";
         }
-		return "P{" +
+        return "PartialProduct{" +
+                " partId=" + parts +
+                " }";
+    }
+
+	@Override
+	public String toString() {
+		return "Product{" +
 				"productId=" + productId +
 				", productAmount=" + productAmount +
-                ", parts=" + parts +
 				'}';
 	}
 }

@@ -1,20 +1,26 @@
 package agents.supervisor;
 
+import agents.controllers.Controller;
 import agents.events.Event;
 import agents.events.EventType;
 import agents.product.ProductOrder;
 import agents.utils.JsonConverter;
 import agents.utils.Logger;
+import jade.content.lang.Codec;
+import jade.content.lang.sl.SLCodec;
+import jade.content.onto.Ontology;
+import jade.content.onto.OntologyException;
+import jade.content.onto.basic.Action;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
+import jade.domain.JADEAgentManagement.JADEManagementOntology;
+import jade.domain.JADEAgentManagement.ShutdownPlatform;
 import jade.lang.acl.ACLMessage;
-import jade.wrapper.AgentController;
-import jade.wrapper.ContainerController;
-import jade.wrapper.ControllerException;
+import jade.wrapper.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +40,8 @@ public class SupervisorAgent extends Agent {
 
 	@Override
 	protected void setup() {
+		Controller.setSupervisor(getAID());
+		Controller.setContainerController(getContainerController());
 		machineManager = startMachineManager();
 		assemblerManager = startAssemblerManager();
 		simulationAgent = startSimulationAgent();
@@ -49,9 +57,9 @@ public class SupervisorAgent extends Agent {
 					if (msg.getPerformative() == ACLMessage.INFORM) {
 						if(msg.getProtocol().equals("FORDER")){
 							Logger.supervisor("Supervisor has received a finished order");
-							Event.createEvent(new Event(EventType.ORDER_COMPLETED, getAID(), getCurrentContainerName(), ""));
-
 							ProductOrder finishedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
+							Event.createEvent(new Event(EventType.ORDER_COMPLETED, getAID(), getCurrentContainerName(), finishedOrder.toString()));
+
 							Optional<ProductOrder> sentOrder = sentOrders.stream()
 									.filter(ord -> ord.getOrderId() == finishedOrder.getOrderId())
 									.findFirst();
@@ -72,11 +80,28 @@ public class SupervisorAgent extends Agent {
 							msgToManagers.addReceiver(assemblerManager);
 							send(msgToManagers);
 							sentOrders.add(receivedOrder);
-						}else if(msg.getProtocol().equals("STOGGL")){
+						} else if (msg.getProtocol().equals("STOGGL")){
 							ACLMessage msgToToggleSimulation = new ACLMessage(ACLMessage.INFORM);
 							msgToToggleSimulation.setProtocol("STOGGL");
 							msgToToggleSimulation.addReceiver(simulationAgent);
 							send(msgToToggleSimulation);
+						} else if (msg.getProtocol().equals("SHUTDOWN")){
+							Codec codec = new SLCodec();
+							Ontology jmo = JADEManagementOntology.getInstance();
+							getContentManager().registerLanguage(codec);
+							getContentManager().registerOntology(jmo);
+							ACLMessage shutdownMsg = new ACLMessage(ACLMessage.REQUEST);
+							shutdownMsg.addReceiver(getAMS());
+							shutdownMsg.setLanguage(codec.getName());
+							shutdownMsg.setOntology(jmo.getName());
+							try {
+								getContentManager().fillContent(shutdownMsg, new Action(getAID(), new ShutdownPlatform()));
+								send(shutdownMsg);
+							} catch (Codec.CodecException e) {
+								e.printStackTrace();
+							} catch (OntologyException e) {
+								e.printStackTrace();
+							}
 						}
 					}
 				}else{

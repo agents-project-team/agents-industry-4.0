@@ -33,7 +33,6 @@ public class MachineAgent extends Worker<PartPlan> {
 							registerAgent("Machine");
 						}else if(msg.getProtocol().equals("ACT")){
 							Logger.process(getLocalName() + " replaces broken machine");
-							Event.createEvent(new Event(EventType.AGENT_REPLACED, getAID(), getAgentCurrentContainerName(), ""));
 							moveToMainContainer();
 							registerAgent("Machine");
 						}
@@ -42,12 +41,12 @@ public class MachineAgent extends Worker<PartPlan> {
 						currentPlan = plan;
 
 						Logger.info(getLocalName() + " is creating a part");
-						Event.createEvent(new Event(EventType.PART_RECEIVED, getAID(), getAgentCurrentContainerName(), ""));
+						Event.createEvent(new Event(EventType.PLAN_RECEIVED, getAID(), getAgentCurrentContainerName(), currentPlan.toEventString()));
 
 						if(!createProcedure()) return;
 
 						ProductPart createdPart = new ProductPart(plan.getPartType());
-						Event.createEvent(new Event(EventType.PART_CREATED, getAID(), getAgentCurrentContainerName(), ""));
+						Event.createEvent(new Event(EventType.PART_CREATED, getAID(), getAgentCurrentContainerName(), createdPart.toString()));
 
 						AID receiverAssembler = getCurrentAssembler();
 						if (receiverAssembler != null) {

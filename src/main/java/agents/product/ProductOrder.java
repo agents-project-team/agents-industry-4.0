@@ -65,7 +65,7 @@ public class ProductOrder {
 
 	@Override
 	public String toString() {
-		return "PO{" +
+		return "Order{" +
 				"orderId=" + orderId +
 				", productAmount=" + productAmount +
 				", productPriority=" + orderPriority +

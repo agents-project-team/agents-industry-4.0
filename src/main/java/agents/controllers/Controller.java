@@ -22,9 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class Controller {
 
-	private AID supervisor = null;
+	private static AID Supervisor = null;
 
-	private ContainerController agentContainer = null;
+	private static ContainerController AgentContainer = null;
 
 	@GetMapping("/state")
 	public ResponseEntity<List<Event>> getState() {
@@ -33,22 +33,28 @@ public class Controller {
 
 	@PostMapping("/order")
 	public ResponseEntity<?> createOrder(@RequestBody ProductOrder order) {
-		createAgent("CreateOrderActuator", "agents.actuators.CreateOrderActuator", new Object[]{supervisor, JsonConverter.toJsonString(order)});
+		createActuator("CreateOrderActuator", "agents.actuators.CreateOrderActuator", new Object[]{Supervisor, JsonConverter.toJsonString(order)});
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	private void createAgent(String name, String className, Object[] actuatorParameters){
-		if(supervisor != null && agentContainer != null){
+	@PostMapping("/shutdown")
+	public ResponseEntity<?> shutdownSystem(){
+		createActuator("ShutdownSystemActuator", "agents.actuators.ShutdownSystemActuator", new Object[]{});
+		return new ResponseEntity<>(HttpStatus.OK);
+	}
+
+	private void createActuator(String name, String className, Object[] actuatorParameters){
+		if(Supervisor != null && AgentContainer != null){
 			try {
-				AgentController ac = agentContainer.createNewAgent(name, className, actuatorParameters);
+				AgentController ac = AgentContainer.createNewAgent(name, className, actuatorParameters);
 			} catch (StaleProxyException e) {
 				e.printStackTrace();
 			}
 		}
 	}
 
-	public void setSupervisor(AID supervisor){ this.supervisor = supervisor; }
-	public void setContainerName(ContainerController agentContainer){ this.agentContainer = agentContainer; }
+	public static void setSupervisor(AID supervisor){ Supervisor = supervisor; }
+	public static void setContainerController(ContainerController agentContainer){ AgentContainer = agentContainer; }
 
 
 }

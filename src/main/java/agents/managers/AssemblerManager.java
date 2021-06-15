@@ -1,5 +1,6 @@
 package agents.managers;
 
+import agents.configs.SimulationConfig;
 import agents.events.Event;
 import agents.events.EventType;
 import agents.product.Product;
@@ -96,7 +97,6 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 						AssemblerState unfinishedAssemblerState = JsonConverter.fromJsonString(msg.getContent(), AssemblerState.class);
 						unfinishedTasks.put(key, unfinishedAssemblerState);
 						if (spareAssemblers.get(key).isEmpty()) {
-							//Handler for no more assemblers
 							Logger.info("No more " + key + " assemblers left.");
 							return;
 						}
@@ -124,24 +124,21 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	}
 
 	private void setupActiveAssemblers() {
-		int assemblerTypes = 3;
 		ContainerController cc = getContainerController();
-		for(int i = 0; i < assemblerTypes; i++){
-			getActiveWorkers().put(AssemblerType.valueOf(i), startActiveAssemblerAgent(AssemblerType.valueOf(i)));
-			Event.createEvent(new Event(EventType.AGENT_CREATED, getActiveWorkers().get(MachineType.valueOf(i)), getCurrentContainerName(), ""));
+		for(int i = 0; i < SimulationConfig.AssemblerTypesAmount; i++){
+			getActiveWorkers().put(AssemblerType.valueOf(i), startActiveAssemblerAgent(AssemblerType.valueOf(i), cc));
+			Event.createEvent(new Event(EventType.AGENT_CREATED, getActiveWorkers().get(MachineType.valueOf(i)), getContainerName(cc), ""));
 		}
 	}
 
 	private void setupSpareAssemblers() {
-		ContainerController cc = getContainerController();
-		int assemblerTypes = 3;
-		int backupAmount = 3;
-		for(int i = 0; i < assemblerTypes; i++){
+		ContainerController cc = startBackupContainer();
+		for(int i = 0; i < SimulationConfig.AssemblerTypesAmount; i++){
 			List<AID> tmpAssemblers = new ArrayList<>();
-			for(int j = 1; j < backupAmount+1; j++){
+			for(int j = 1; j < SimulationConfig.BackupAssemblerAmount+1; j++){
 				AID tmpBackupAssembler = startBackupAssemblerAgent(j, AssemblerType.valueOf(i), cc);
 				tmpAssemblers.add(tmpBackupAssembler);
-				Event.createEvent(new Event(EventType.AGENT_CREATED, tmpBackupAssembler, getCurrentContainerName(), ""));
+				Event.createEvent(new Event(EventType.AGENT_CREATED, tmpBackupAssembler, getContainerName(cc), ""));
 			}
 			getSpareWorkers().put(AssemblerType.valueOf(i), tmpAssemblers);
 		}
@@ -187,14 +184,13 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 			ac.start();
 			AID agentID = new AID(ac.getName(), AID.ISGUID);
 			storageId = agentID;
-			Event.createEvent(new Event(EventType.AGENT_CREATED, agentID, getCurrentContainerName(), ""));
+			Event.createEvent(new Event(EventType.AGENT_CREATED, agentID, getContainerName(cc), ""));
 		} catch (StaleProxyException e) {
 			e.printStackTrace();
 		}
 	}
 
-	private AID startActiveAssemblerAgent(AssemblerType type) {
-		ContainerController cc = getContainerController();
+	private AID startActiveAssemblerAgent(AssemblerType type, ContainerController cc) {
 		try {
 			AgentController ac = cc.createNewAgent("Assembler" + type.name(), "agents.workers.assemblers.AssemblerAgent",
 					new Object[]{getAID(), type.toString()});
@@ -328,8 +324,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		send(activateMsg);
 	}
 
-	private String getCurrentContainerName(){
-		ContainerController cc = getContainerController();
+	private String getContainerName(ContainerController cc){
 		String containerName = "";
 		try {
 			containerName = cc.getContainerName();
