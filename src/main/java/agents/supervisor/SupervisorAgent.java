@@ -9,6 +9,7 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
+import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
@@ -37,58 +38,88 @@ public class SupervisorAgent extends Agent {
 
 	private AID assemblerManager;
 
+	private AID simulationAgent;
+
 	@Override
 	protected void setup() {
 		machineManager = startMachineManager();
 		assemblerManager = startAssemblerManager();
+		simulationAgent = startSimulationAgent();
 		startDeadMachineContainer();
 
 		doWait(2000);
 
-		addBehaviour(new TickerBehaviour(this, 2000) {
+		addBehaviour(new CyclicBehaviour() {
 			@Override
-			protected void onTick() {
-				if (receivedOrders.size() > 0) {
-					Logger.supervisor("Supervisor sends product plan to managers");
-
-					ProductOrder order = receivedOrders.get(0);
-					String productPlan = JsonConverter.toJsonString(order);
-
-					ACLMessage msgToManagers = new ACLMessage(ACLMessage.INFORM);
-					msgToManagers.setContent(productPlan);
-					msgToManagers.setProtocol("ORDER");
-					msgToManagers.addReceiver(machineManager);
-					msgToManagers.addReceiver(assemblerManager);
-					send(msgToManagers);
-
-					receivedOrders.remove(order);
-					sentOrders.add(order);
-				}
-
+			public void action() {
 				ACLMessage msg = receive();
 				if (msg != null) {
-					if (msg.getPerformative() == ACLMessage.INFORM && msg.getProtocol().equals("FORDER")) {
-						Logger.supervisor("Supervisor has received a finished order");
-						Event.createEvent(new Event(EventType.ORDER_COMPLETED, getAID(), getCurrentContainerName(), ""));
+					if (msg.getPerformative() == ACLMessage.INFORM) {
+						if(msg.getProtocol().equals("FORDER")){
+							Logger.supervisor("Supervisor has received a finished order");
+							Event.createEvent(new Event(EventType.ORDER_COMPLETED, getAID(), getCurrentContainerName(), ""));
 
-						ProductOrder finishedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
-						Optional<ProductOrder> sentOrder = sentOrders.stream()
-								.filter(ord -> ord.getOrderId() == finishedOrder.getOrderId())
-								.findFirst();
+							ProductOrder finishedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
+							Optional<ProductOrder> sentOrder = sentOrders.stream()
+									.filter(ord -> ord.getOrderId() == finishedOrder.getOrderId())
+									.findFirst();
 
-						if (sentOrder.isPresent()) {
-							sentOrders.remove(sentOrder.get());
-							finishedOrders.add(sentOrder.get());
-							printFinishedOrders();
+							if (sentOrder.isPresent()) {
+								sentOrders.remove(sentOrder.get());
+								finishedOrders.add(sentOrder.get());
+								printFinishedOrders();
+							}
+						}else if(msg.getProtocol().equals("NORDER")){
+							ProductOrder receivedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
+							System.out.println(receivedOrder.toString());
 						}
-//						if (sentOrders.size() == 0) {
-//							Logger.summary("All orders have been completed", true);
-//							System.exit(0);
-//						}
 					}
+				}else{
+					block();
 				}
 			}
 		});
+
+//		addBehaviour(new TickerBehaviour(this, 2000) {
+//			@Override
+//			protected void onTick() {
+//				if (receivedOrders.size() > 0) {
+//					Logger.supervisor("Supervisor sends product plan to managers");
+//
+//					ProductOrder order = receivedOrders.get(0);
+//					String productPlan = JsonConverter.toJsonString(order);
+//
+//					ACLMessage msgToManagers = new ACLMessage(ACLMessage.INFORM);
+//					msgToManagers.setContent(productPlan);
+//					msgToManagers.setProtocol("ORDER");
+//					msgToManagers.addReceiver(machineManager);
+//					msgToManagers.addReceiver(assemblerManager);
+//					send(msgToManagers);
+//
+//					receivedOrders.remove(order);
+//					sentOrders.add(order);
+//				}
+//
+//				ACLMessage msg = receive();
+//				if (msg != null) {
+//					if (msg.getPerformative() == ACLMessage.INFORM && msg.getProtocol().equals("FORDER")) {
+//						Logger.supervisor("Supervisor has received a finished order");
+//						Event.createEvent(new Event(EventType.ORDER_COMPLETED, getAID(), getCurrentContainerName(), ""));
+//
+//						ProductOrder finishedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
+//						Optional<ProductOrder> sentOrder = sentOrders.stream()
+//								.filter(ord -> ord.getOrderId() == finishedOrder.getOrderId())
+//								.findFirst();
+//
+//						if (sentOrder.isPresent()) {
+//							sentOrders.remove(sentOrder.get());
+//							finishedOrders.add(sentOrder.get());
+//							printFinishedOrders();
+//						}
+//					}
+//				}
+//			}
+//		});
 	}
 
 	private AID startMachineManager() {
@@ -107,6 +138,18 @@ public class SupervisorAgent extends Agent {
 		try {
 			ContainerController cc = getContainerController();
 			AgentController ac = cc.createNewAgent("AssemblerManager", "agents.managers.AssemblerManager", new Object[]{getAID()});
+			ac.start();
+			return new AID(ac.getName(), AID.ISGUID);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new IllegalStateException();
+		}
+	}
+
+	private AID startSimulationAgent(){
+		try {
+			ContainerController cc = getContainerController();
+			AgentController ac = cc.createNewAgent("SimulationAgent", "agents.simulation.SimulationAgent", new Object[]{getAID()});
 			ac.start();
 			return new AID(ac.getName(), AID.ISGUID);
 		} catch (Exception e) {

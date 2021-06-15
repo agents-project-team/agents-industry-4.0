@@ -68,6 +68,7 @@ public class ProductOrder {
 		return "PO{" +
 				"orderId=" + orderId +
 				", productAmount=" + productAmount +
+				", productPriority=" + orderPriority +
 				", productId=" + productId +
 				'}';
 	}

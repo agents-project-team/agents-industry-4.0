@@ -35,6 +35,17 @@ public class SimulationConfig {
 
 	// **************************************************************************************************************************************
 
+	public static final int MAX_PRODUCT_AMOUNT = 10;
+
+	public static final int MAX_AMOUNT_PER_PART = 1;
+
+	public static final int MAX_PRIORITY_VALUE = 1000;
+
+	// **************************************************************************************************************************************
+
+	public static final int MAX_SECONDS_PER_ORDER = 10;
+
+	public static final int MIN_SECONDS_PER_ORDER = 5;
 
 	private static Map<AssemblerType, Double> assemblerTypeToSeconds = Map.of(
 			AssemblerType.Fabric, SECONDS_TO_ASSEMBLE_FABRIC,
