@@ -1,5 +1,8 @@
 package agents.managers;
 
+import agents.configs.SimulationConfig;
+import agents.events.Event;
+import agents.events.EventType;
 import agents.product.Product;
 import agents.product.ProductOrder;
 import agents.product.ProductPlan;
@@ -16,6 +19,7 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
+import jade.wrapper.ControllerException;
 import jade.wrapper.StaleProxyException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +31,8 @@ import java.util.Set;
 public class AssemblerManager extends Agent implements Manager<AID, AssemblerType> {
 
 	private AID supervisor;
+
+	private AID storageId;
 
 	private final Map<AssemblerType, AssemblerState> unfinishedTasks = new HashMap<>();
 
@@ -44,6 +50,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		setupActiveAssemblers();
 		setupSpareAssemblers();
 		setupBehaviours();
+		startStorageAgent();
 	}
 
 	private void setupBehaviours() {
@@ -90,7 +97,6 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 						AssemblerState unfinishedAssemblerState = JsonConverter.fromJsonString(msg.getContent(), AssemblerState.class);
 						unfinishedTasks.put(key, unfinishedAssemblerState);
 						if (spareAssemblers.get(key).isEmpty()) {
-							//Handler for no more assemblers
 							Logger.info("No more " + key + " assemblers left.");
 							return;
 						}
@@ -118,20 +124,21 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 	}
 
 	private void setupActiveAssemblers() {
-		int assemblerTypes = 3;
-		for(int i = 0; i < assemblerTypes; i++){
-			getActiveWorkers().put(AssemblerType.valueOf(i), startActiveAssemblerAgent(AssemblerType.valueOf(i)));
+		ContainerController cc = getContainerController();
+		for(int i = 0; i < SimulationConfig.AssemblerTypesAmount; i++){
+			getActiveWorkers().put(AssemblerType.valueOf(i), startActiveAssemblerAgent(AssemblerType.valueOf(i), cc));
+			Event.createEvent(new Event(EventType.AGENT_CREATED, getActiveWorkers().get(MachineType.valueOf(i)), getContainerName(cc), ""));
 		}
 	}
 
 	private void setupSpareAssemblers() {
 		ContainerController cc = startBackupContainer();
-		int assemblerTypes = 3;
-		int backupAmount = 3;
-		for(int i = 0; i < assemblerTypes; i++){
+		for(int i = 0; i < SimulationConfig.AssemblerTypesAmount; i++){
 			List<AID> tmpAssemblers = new ArrayList<>();
-			for(int j = 1; j < backupAmount+1; j++){
-				tmpAssemblers.add(startBackupAssemblerAgent(j, AssemblerType.valueOf(i), cc));
+			for(int j = 1; j < SimulationConfig.BackupAssemblerAmount+1; j++){
+				AID tmpBackupAssembler = startBackupAssemblerAgent(j, AssemblerType.valueOf(i), cc);
+				tmpAssemblers.add(tmpBackupAssembler);
+				Event.createEvent(new Event(EventType.AGENT_CREATED, tmpBackupAssembler, getContainerName(cc), ""));
 			}
 			getSpareWorkers().put(AssemblerType.valueOf(i), tmpAssemblers);
 		}
@@ -169,8 +176,21 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		return null;
 	}
 
-	private AID startActiveAssemblerAgent(AssemblerType type) {
+	private void startStorageAgent(){
+		String name = "StorageAgent";
 		ContainerController cc = getContainerController();
+		try {
+			AgentController ac = cc.createNewAgent(name, "agents.storage.StorageAgent", new Object[]{});
+			ac.start();
+			AID agentID = new AID(ac.getName(), AID.ISGUID);
+			storageId = agentID;
+			Event.createEvent(new Event(EventType.AGENT_CREATED, agentID, getContainerName(cc), ""));
+		} catch (StaleProxyException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private AID startActiveAssemblerAgent(AssemblerType type, ContainerController cc) {
 		try {
 			AgentController ac = cc.createNewAgent("Assembler" + type.name(), "agents.workers.assemblers.AssemblerAgent",
 					new Object[]{getAID(), type.toString()});
@@ -250,6 +270,7 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 				System.out.println(currentOrders.get(planIndex).toString());
 				System.out.println(finishedProducts.get(index).toString());
 				notifyFinishedTask(currentOrders.get(planIndex));
+				sendProductToStorage(finishedProducts.get(index));
 				currentOrders.remove(planIndex);
 				finishedProducts.remove(index);
 			}
@@ -263,6 +284,15 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		msgToSupervisor.setContent(JsonConverter.toJsonString(order));
 		send(msgToSupervisor);
 		Logger.info(getLocalName() + " has sent a order to supervisor");
+	}
+
+	private void sendProductToStorage(Product finishedProducts){
+		ACLMessage msgToStorage = new ACLMessage(ACLMessage.UNKNOWN);
+		msgToStorage.setProtocol("FPRODS");
+		msgToStorage.addReceiver(storageId);
+		msgToStorage.setContent(JsonConverter.toJsonString(finishedProducts));
+		send(msgToStorage);
+		Logger.info(getLocalName()+" has sent finished products to storage");
 	}
 
 	private int getProductIndex(String newProdId){
@@ -292,5 +322,15 @@ public class AssemblerManager extends Agent implements Manager<AID, AssemblerTyp
 		activateMsg.setProtocol("REG");
 		activateMsg.addReceiver(agentId);
 		send(activateMsg);
+	}
+
+	private String getContainerName(ContainerController cc){
+		String containerName = "";
+		try {
+			containerName = cc.getContainerName();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
+		return containerName;
 	}
 }

@@ -1,29 +1,32 @@
 package agents.supervisor;
 
+import agents.controllers.Controller;
+import agents.events.Event;
+import agents.events.EventType;
 import agents.product.ProductOrder;
 import agents.utils.JsonConverter;
 import agents.utils.Logger;
+import jade.content.lang.Codec;
+import jade.content.lang.sl.SLCodec;
+import jade.content.onto.Ontology;
+import jade.content.onto.OntologyException;
+import jade.content.onto.basic.Action;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
+import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
+import jade.domain.JADEAgentManagement.JADEManagementOntology;
+import jade.domain.JADEAgentManagement.ShutdownPlatform;
 import jade.lang.acl.ACLMessage;
-import jade.wrapper.AgentController;
-import jade.wrapper.ContainerController;
+import jade.wrapper.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class SupervisorAgent extends Agent {
-
-	private List<ProductOrder> receivedOrders = new ArrayList<>(
-			List.of(new ProductOrder("AXY6-BZC8-C999-DB31-EGH6", 8, 1),
-					new ProductOrder("ACCC-B980-CBF3-DAD3-EPH8", 10, 3),
-					new ProductOrder("ADSE-B8H6-CZZ2-DO8J-E864", 6, 4),
-					new ProductOrder("A892-BBS5-CND3-DP87-EHG7", 6, 2)
-			)
-	);
 
 	private final List<ProductOrder> sentOrders = new ArrayList<>();
 
@@ -33,54 +36,77 @@ public class SupervisorAgent extends Agent {
 
 	private AID assemblerManager;
 
+	private AID simulationAgent;
+
 	@Override
 	protected void setup() {
+		Controller.setSupervisor(getAID());
+		Controller.setContainerController(getContainerController());
 		machineManager = startMachineManager();
 		assemblerManager = startAssemblerManager();
+		simulationAgent = startSimulationAgent();
 		startDeadMachineContainer();
 
 		doWait(2000);
 
-		addBehaviour(new TickerBehaviour(this, 2000) {
+		addBehaviour(new CyclicBehaviour() {
 			@Override
-			protected void onTick() {
-				if (receivedOrders.size() > 0) {
-					Logger.supervisor("Supervisor sends product plan to managers");
-
-					ProductOrder order = receivedOrders.get(0);
-					String productPlan = JsonConverter.toJsonString(order);
-
-					ACLMessage msgToManagers = new ACLMessage(ACLMessage.INFORM);
-					msgToManagers.setContent(productPlan);
-					msgToManagers.setProtocol("ORDER");
-					msgToManagers.addReceiver(machineManager);
-					msgToManagers.addReceiver(assemblerManager);
-					send(msgToManagers);
-
-					receivedOrders.remove(order);
-					sentOrders.add(order);
-				}
-
+			public void action() {
 				ACLMessage msg = receive();
 				if (msg != null) {
-					if (msg.getPerformative() == ACLMessage.INFORM && msg.getProtocol().equals("FORDER")) {
-						Logger.supervisor("Supervisor has received a finished order");
+					if (msg.getPerformative() == ACLMessage.INFORM) {
+						if(msg.getProtocol().equals("FORDER")){
+							Logger.supervisor("Supervisor has received a finished order");
+							ProductOrder finishedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
+							Event.createEvent(new Event(EventType.ORDER_COMPLETED, getAID(), getCurrentContainerName(), finishedOrder.getProductId()));
 
-						ProductOrder finishedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
-						Optional<ProductOrder> sentOrder = sentOrders.stream()
-								.filter(ord -> ord.getOrderId() == finishedOrder.getOrderId())
-								.findFirst();
+							Optional<ProductOrder> sentOrder = sentOrders.stream()
+									.filter(ord -> ord.getOrderId() == finishedOrder.getOrderId())
+									.findFirst();
 
-						if (sentOrder.isPresent()) {
-							sentOrders.remove(sentOrder.get());
-							finishedOrders.add(sentOrder.get());
-							printFinishedOrders();
-						}
-						if (sentOrders.size() == 0) {
-							Logger.summary("All orders have been completed", true);
-							System.exit(0);
+							if (sentOrder.isPresent()) {
+								sentOrders.remove(sentOrder.get());
+								finishedOrders.add(sentOrder.get());
+								printFinishedOrders();
+							}
+						}else if(msg.getProtocol().equals("NORDER")){
+							ProductOrder receivedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
+							Event.createEvent(new Event(EventType.ORDER_CREATED, getAID(), getCurrentContainerName(), receivedOrder.getProductId()));
+							Logger.supervisor("Supervisor sends product plan to managers");
+
+							ACLMessage msgToManagers = new ACLMessage(ACLMessage.INFORM);
+							msgToManagers.setContent(JsonConverter.toJsonString(receivedOrder));
+							msgToManagers.setProtocol("ORDER");
+							msgToManagers.addReceiver(machineManager);
+							msgToManagers.addReceiver(assemblerManager);
+							send(msgToManagers);
+							sentOrders.add(receivedOrder);
+						} else if (msg.getProtocol().equals("STOGGL")){
+							ACLMessage msgToToggleSimulation = new ACLMessage(ACLMessage.INFORM);
+							msgToToggleSimulation.setProtocol("STOGGL");
+							msgToToggleSimulation.addReceiver(simulationAgent);
+							send(msgToToggleSimulation);
+						} else if (msg.getProtocol().equals("SHUTDOWN")){
+							Codec codec = new SLCodec();
+							Ontology jmo = JADEManagementOntology.getInstance();
+							getContentManager().registerLanguage(codec);
+							getContentManager().registerOntology(jmo);
+							ACLMessage shutdownMsg = new ACLMessage(ACLMessage.REQUEST);
+							shutdownMsg.addReceiver(getAMS());
+							shutdownMsg.setLanguage(codec.getName());
+							shutdownMsg.setOntology(jmo.getName());
+							try {
+								getContentManager().fillContent(shutdownMsg, new Action(getAID(), new ShutdownPlatform()));
+								send(shutdownMsg);
+							} catch (Codec.CodecException e) {
+								e.printStackTrace();
+							} catch (OntologyException e) {
+								e.printStackTrace();
+							}
 						}
 					}
+				}else{
+					block();
 				}
 			}
 		});
@@ -110,6 +136,18 @@ public class SupervisorAgent extends Agent {
 		}
 	}
 
+	private AID startSimulationAgent(){
+		try {
+			ContainerController cc = getContainerController();
+			AgentController ac = cc.createNewAgent("SimulationAgent", "agents.simulation.SimulationAgent", new Object[]{getAID()});
+			ac.start();
+			return new AID(ac.getName(), AID.ISGUID);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new IllegalStateException();
+		}
+	}
+
 	private void printFinishedOrders() {
 		Logger.supervisor("Prints list of finished orders:");
 		for (ProductOrder order : finishedOrders) {
@@ -130,20 +168,12 @@ public class SupervisorAgent extends Agent {
 		this.machineManager = machineManager;
 	}
 
-	public void setReceivedOrders(List<ProductOrder> orders) {
-		receivedOrders = orders;
-	}
-
 	public AID getMachineManager() {
 		return machineManager;
 	}
 
 	public AID getAssemblerManager() {
 		return assemblerManager;
-	}
-
-	public List<ProductOrder> getReceivedOrders() {
-		return receivedOrders;
 	}
 
 	public List<ProductOrder> getSentOrders() {
@@ -156,5 +186,16 @@ public class SupervisorAgent extends Agent {
 		profile.setParameter(Profile.CONTAINER_NAME, "DeadMachines");
 		profile.setParameter(Profile.MAIN_HOST, "localhost");
 		runtime.createAgentContainer(profile);
+	}
+
+	private String getCurrentContainerName(){
+		ContainerController cc = getContainerController();
+		String containerName = "";
+		try {
+			containerName = cc.getContainerName();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
+		return containerName;
 	}
 }

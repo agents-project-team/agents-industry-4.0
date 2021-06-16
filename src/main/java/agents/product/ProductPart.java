@@ -23,7 +23,7 @@ public class ProductPart implements Serializable {
 	@Override
 	public String toString() {
 		return "ProductPart{" +
-				", partId='" + partId + '\'' +
+				" partId='" + partId + '\'' +
 				'}';
 	}
 }

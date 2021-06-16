@@ -1,5 +1,7 @@
 package agents.workers;
 
+import agents.events.Event;
+import agents.events.EventType;
 import agents.utils.JsonConverter;
 import agents.utils.Logger;
 import jade.core.AID;
@@ -11,6 +13,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentContainer;
+import jade.wrapper.ContainerController;
 import jade.wrapper.ControllerException;
 import java.util.Random;
 
@@ -105,6 +108,17 @@ public abstract class Worker<T> extends Agent {
 		doMove(destination);
 	}
 
+	public String getAgentCurrentContainerName(){
+		ContainerController cc = getContainerController();
+		String containerName = "";
+		try {
+			containerName = cc.getContainerName();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
+		return containerName;
+	}
+
 	protected void afterMove(){
     	AgentContainer ac = getContainerController();
     	String containerName = null;
@@ -114,7 +128,13 @@ public abstract class Worker<T> extends Agent {
 			e.printStackTrace();
 		}
 		if(containerName != null){
-			if(containerName.equals("Main-Container")) requestTaskFromManager();
+			if(containerName.equals("Main-Container")){
+				requestTaskFromManager();
+				Event.createEvent(new Event(EventType.AGENT_REPLACED, getAID(), getAgentCurrentContainerName(), ""));
+			}
+			if(containerName.equals("DeadMachines")){
+				Event.createEvent(new Event(EventType.AGENT_DIED, getAID(), getAgentCurrentContainerName(), ""));
+			}
 		}
 	}
 

@@ -1,6 +1,8 @@
 package agents.workers.assemblers;
 
 import agents.configs.SimulationConfig;
+import agents.events.Event;
+import agents.events.EventType;
 import agents.product.PartPlan;
 import agents.product.Product;
 import agents.product.ProductPart;
@@ -60,13 +62,15 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 							if (msg.getProtocol().equals("SPART")) {
 								ProductPart receivedPart = JsonConverter.fromJsonString(msg.getContent(), ProductPart.class);
 								Logger.info(getLocalName() + " has received new part from " + msg.getSender().getLocalName());
+								Event.createEvent(new Event(EventType.PART_RECEIVED, getAID(), getAgentCurrentContainerName(), receivedPart.toString()));
 
 								storedParts.add(receivedPart);
 								assembleParts();
 							} else if (msg.getProtocol().equals("PPROD")){
-								Logger.info(getLocalName() + " has received new partial product from " + msg.getSender().getLocalName());
-
 								Product partialProduct = JsonConverter.fromJsonString(msg.getContent(), Product.class);
+								Logger.info(getLocalName() + " has received new partial product from " + msg.getSender().getLocalName());
+								Event.createEvent(new Event(EventType.PART_RECEIVED, getAID(), getAgentCurrentContainerName(), partialProduct.partialToString()));
+
 								storedParts.addAll(partialProduct.getProductParts());
 								assembleParts();
 							}
@@ -144,6 +148,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 	private void sendParts(List<ProductPart> parts) {
 		if (assemblerType == AssemblerType.Final) {
 			Product product = new Product(1, parts);
+			Event.createEvent(new Event(EventType.PRODUCT_ASSEMBLED, getAID(), getAgentCurrentContainerName(), product.toString()));
 			ACLMessage msgToAssemblerManager = new ACLMessage(ACLMessage.UNKNOWN);
 			msgToAssemblerManager.setProtocol("FPROD");
 			msgToAssemblerManager.addReceiver(getManagerId());
@@ -153,6 +158,7 @@ public class AssemblerAgent extends Worker<AssemblerState> {
 			AID receiverAID = getAssemblerAID(AssemblerType.Final);
 			if(receiverAID!=null){
 				Product partialProduct = new Product(1, parts);
+				Event.createEvent(new Event(EventType.PRODUCT_ASSEMBLED, getAID(), getAgentCurrentContainerName(), partialProduct.partialToString()));
 				ACLMessage partsToFinalAssembler = new ACLMessage(ACLMessage.UNKNOWN);
 				partsToFinalAssembler.setProtocol("PPROD");
 				partsToFinalAssembler.setContent(JsonConverter.toJsonString(partialProduct));

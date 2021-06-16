@@ -1,0 +1,15 @@
+package agents.events;
+
+public enum EventType {
+    AGENT_CREATED,
+    AGENT_DIED,
+    AGENT_REPLACED,
+    PLAN_RECEIVED,
+    PART_RECEIVED,
+    PART_CREATED,
+    PRODUCT_ASSEMBLED,
+    ORDER_COMPLETED,
+    ORDER_CREATED,
+    PRODUCTS_RECEIVED,
+    SYSTEM_SHUTDOWN
+}

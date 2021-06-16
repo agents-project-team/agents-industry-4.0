@@ -1,19 +1,21 @@
 package agents.managers;
 
+import agents.configs.SimulationConfig;
+import agents.events.Event;
+import agents.events.EventType;
 import agents.product.PartPlan;
 import agents.product.ProductOrder;
 import agents.product.ProductPlan;
 import agents.utils.JsonConverter;
 import agents.utils.Logger;
 import agents.workers.machines.MachineType;
-import jade.core.AID;
-import jade.core.Agent;
-import jade.core.Profile;
-import jade.core.ProfileImpl;
+import jade.core.*;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
+import jade.wrapper.ControllerException;
+
 import java.util.*;
 
 public class MachineManager extends Agent implements Manager<AID, MachineType> {
@@ -123,20 +125,21 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 	}
 
 	private void setupActiveMachines() {
-		int machineTypes = 5;
-		for(int i = 0; i < machineTypes; i++){
-			getActiveWorkers().put(MachineType.valueOf(i), startActiveMachineAgent(MachineType.valueOf(i)));
+		ContainerController cc = getContainerController();
+		for(int i = 0; i < SimulationConfig.MachineTypesAmount; i++){
+			getActiveWorkers().put(MachineType.valueOf(i), startActiveMachineAgent(MachineType.valueOf(i), cc));
+			Event.createEvent(new Event(EventType.AGENT_CREATED, getActiveWorkers().get(MachineType.valueOf(i)), getContainerName(cc), ""));
 		}
 	}
 
 	private void setupSpareMachines() {
 		ContainerController cc = startBackupContainer();
-		int machineTypes = 5;
-		int backupAmount = 3;
-		for(int i = 0; i < machineTypes; i++){
+		for(int i = 0; i < SimulationConfig.MachineTypesAmount; i++){
 			List<AID> tmpMachines = new ArrayList<>();
-			for(int j = 1; j < backupAmount+1; j++){
-				tmpMachines.add(startBackupMachineAgent(j, MachineType.valueOf(i), cc));
+			for(int j = 1; j < SimulationConfig.BackupMachineAmount+1; j++){
+				AID tmpBackupMachine = startBackupMachineAgent(j, MachineType.valueOf(i), cc);
+				tmpMachines.add(tmpBackupMachine);
+				Event.createEvent(new Event(EventType.AGENT_CREATED, tmpBackupMachine, getContainerName(cc), ""));
 			}
 			getSpareWorkers().put(MachineType.valueOf(i), tmpMachines);
 		}
@@ -165,9 +168,8 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 		return spareMachines;
 	}
 
-	private AID startActiveMachineAgent(MachineType type) {
+	private AID startActiveMachineAgent(MachineType type, ContainerController cc) {
 		try {
-			ContainerController cc = getContainerController();
 			AgentController ac = cc.createNewAgent(type.name(), "agents.workers.machines.MachineAgent", new Object[]{getAID(), type.toString()});
 			ac.start();
 			AID agentID = new AID(ac.getName(), AID.ISGUID);
@@ -235,4 +237,15 @@ public class MachineManager extends Agent implements Manager<AID, MachineType> {
 		activateMsg.addReceiver(agentId);
 		send(activateMsg);
 	}
+
+	private String getContainerName(ContainerController cc){
+		String containerName = "";
+		try {
+			containerName = cc.getContainerName();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
+		return containerName;
+	}
+
 }
