@@ -58,7 +58,7 @@ public class SupervisorAgent extends Agent {
 						if(msg.getProtocol().equals("FORDER")){
 							Logger.supervisor("Supervisor has received a finished order");
 							ProductOrder finishedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
-							Event.createEvent(new Event(EventType.ORDER_COMPLETED, getAID(), getCurrentContainerName(), finishedOrder.toString()));
+							Event.createEvent(new Event(EventType.ORDER_COMPLETED, getAID(), getCurrentContainerName(), finishedOrder.getProductId()));
 
 							Optional<ProductOrder> sentOrder = sentOrders.stream()
 									.filter(ord -> ord.getOrderId() == finishedOrder.getOrderId())
@@ -71,6 +71,7 @@ public class SupervisorAgent extends Agent {
 							}
 						}else if(msg.getProtocol().equals("NORDER")){
 							ProductOrder receivedOrder = JsonConverter.fromJsonString(msg.getContent(), ProductOrder.class);
+							Event.createEvent(new Event(EventType.ORDER_CREATED, getAID(), getCurrentContainerName(), receivedOrder.getProductId()));
 							Logger.supervisor("Supervisor sends product plan to managers");
 
 							ACLMessage msgToManagers = new ACLMessage(ACLMessage.INFORM);
